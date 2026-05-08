@@ -333,11 +333,7 @@ export default function Productos({ usuario, onRequireLogin }) {
   };
 
   const finalizarVentaCarrito = async () => {
-  const clienteFinal =
-    usuario?.rol === 'cliente'
-      ? usuario?.id_cliente
-      : clienteCarrito;
-
+  
   if (!clienteFinal) {
     setError('Selecciona un cliente para finalizar la venta');
     return;
@@ -354,7 +350,7 @@ export default function Productos({ usuario, onRequireLogin }) {
 
 const clienteFinal =
   usuario?.rol === 'cliente'
-    ? clienteSesion?.id_cliente
+    ? (usuario?.id_cliente || clienteSesion?.id_cliente)
     : clienteCarrito;
 
 if (!clienteFinal) {
