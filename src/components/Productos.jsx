@@ -347,10 +347,24 @@ export default function Productos({ usuario, onRequireLogin }) {
     setError('El carrito esta vacio');
     return;
   }
-    if (!clienteCarrito) {
-      setError('Selecciona un cliente para finalizar la venta');
-      return;
-    }
+    const clienteSesion = clientes.find((c) =>
+  String(c.email || '').toLowerCase() === String(usuario?.email || '').toLowerCase()
+  || String(c.nombre || '').toLowerCase() === String(usuario?.nombre || '').toLowerCase()
+);
+
+const clienteFinal =
+  usuario?.rol === 'cliente'
+    ? clienteSesion?.id_cliente
+    : clienteCarrito;
+
+if (!clienteFinal) {
+  setError(
+    usuario?.rol === 'cliente'
+      ? 'No se encontró tu cliente registrado. Crea o revisa tu cuenta de cliente.'
+      : 'Selecciona un cliente para finalizar la venta'
+  );
+  return;
+}
 
     if (carrito.length === 0) {
       setError('El carrito esta vacio');
