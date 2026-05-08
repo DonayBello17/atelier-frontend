@@ -129,45 +129,48 @@ export default function App() {
   };
 
   const renderVista = () => {
-    if (vista === 'login' && !usuario) {
-      return (
-        <Login
-          onLogin={handleLogin}
-          onBackCatalogo={handleBackCatalogo}
-        />
-      );
-    }
+  if (vista === 'login' && !usuario) {
+    return (
+      <Login
+        onLogin={handleLogin}
+        onBackCatalogo={handleBackCatalogo}
+      />
+    );
+  }
 
-    if (vista === 'productos') {
-      return (
-        <Productos
-          usuario={usuario}
-          onRequireLogin={handleLoginClick}
-        />
-      );
-    }
-
-    if (!vistasPermitidas.includes(vista)) {
-      return (
-        <Productos
-          usuario={usuario}
-          onRequireLogin={handleLoginClick}
-        />
-      );
-    }
-
-    if (vista === 'clientes') return <Clientes usuario={usuario} />;
-    if (vista === 'inventario') return <Inventario usuario={usuario} />;
-    if (vista === 'ventas') return <Ventas usuario={usuario} />;
-    if (vista === 'tallas') return <Tallas usuario={usuario} />;
-
+  if (vista === 'productos') {
     return (
       <Productos
         usuario={usuario}
         onRequireLogin={handleLoginClick}
       />
     );
-  };
+  }
+
+  if (vista === 'ventas') {
+    return <Ventas usuario={usuario} />;
+  }
+
+  if (usuario?.rol === 'cliente') {
+    return (
+      <Productos
+        usuario={usuario}
+        onRequireLogin={handleLoginClick}
+      />
+    );
+  }
+
+  if (vista === 'clientes') return <Clientes usuario={usuario} />;
+  if (vista === 'inventario') return <Inventario usuario={usuario} />;
+  if (vista === 'tallas') return <Tallas usuario={usuario} />;
+
+  return (
+    <Productos
+      usuario={usuario}
+      onRequireLogin={handleLoginClick}
+    />
+  );
+};
 
   if (vista === 'login' && !usuario) {
     return (
