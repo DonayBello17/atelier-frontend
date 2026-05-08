@@ -35,7 +35,36 @@ export default function Ventas({ usuario }) {
   const [guardando, setGuardando] = useState(false);
 
   const esAdmin = usuario?.rol === 'admin';
-  const puedeVender = esAdmin || usuario?.rol === 'empleado';
+const esCliente = usuario?.rol === 'cliente';
+const puedeVender = esAdmin || usuario?.rol === 'empleado';
+
+const normalizar = (valor) =>
+  String(valor || '').toLowerCase().trim();
+
+const clienteSesion = useMemo(() => {
+  if (!esCliente) return null;
+
+  return clientes.find((cliente) => {
+    return (
+      normalizar(cliente.email) === normalizar(usuario?.email) ||
+      normalizar(cliente.nombre) === normalizar(usuario?.nombre)
+    );
+  });
+}, [clientes, usuario, esCliente]);
+
+const ventasBase = useMemo(() => {
+  if (!esCliente) return ventas;
+
+  if (!clienteSesion) return [];
+
+  return ventas.filter((venta) => {
+    return (
+      String(venta.id_cliente || '') === String(clienteSesion.id_cliente || '') ||
+      normalizar(venta.email) === normalizar(clienteSesion.email) ||
+      normalizar(venta.cliente) === normalizar(clienteSesion.nombre)
+    );
+  });
+}, [ventas, esCliente, clienteSesion]);
 
   const cargar = async () => {
     try {
@@ -63,11 +92,11 @@ export default function Ventas({ usuario }) {
   }, []);
 
   const ventasFiltradas = useMemo(() => {
-    return ventas.filter((venta) => {
-      const texto = `${venta.id_venta || ''} ${venta.cliente || ''}`.toLowerCase();
-      return texto.includes(busqueda.toLowerCase());
-    });
-  }, [ventas, busqueda]);
+  return ventasBase.filter((venta) => {
+    const texto = `${venta.id_venta || ''} ${venta.cliente || ''}`.toLowerCase();
+    return texto.includes(busqueda.toLowerCase());
+  });
+}, [ventasBase, busqueda]);
 
   const totalFormulario = useMemo(() => {
     return items.reduce((acc, item) => {
@@ -77,9 +106,9 @@ export default function Ventas({ usuario }) {
     }, 0);
   }, [items]);
 
- const stats = useMemo(() => {
-  const ventasActivas = ventas.filter((venta) => venta.estado !== 'anulada');
-  const ventasAnuladas = ventas.filter((venta) => venta.estado === 'anulada');
+const stats = useMemo(() => {
+  const ventasActivas = ventasBase.filter((venta) => venta.estado !== 'anulada');
+  const ventasAnuladas = ventasBase.filter((venta) => venta.estado === 'anulada');
 
   const ingresos = ventasActivas.reduce((acc, venta) => {
     return acc + (Number(venta.total) || 0);
@@ -100,7 +129,7 @@ export default function Ventas({ usuario }) {
     totalAnuladas,
     ticketPromedio,
   };
-}, [ventas]);
+}, [ventasBase]);
 
 
   const formatMoney = (value) => {
@@ -1027,11 +1056,19 @@ export default function Ventas({ usuario }) {
         <div className="sales-container">
           <section className="sales-hero">
             <div className="hero-content">
-              <div className="eyebrow">Modulo comercial</div>
-              <h1>Ventas, facturas y control de stock.</h1>
-              <p>
-                Registra ventas, descuenta inventario y genera facturas imprimibles para tus clientes.
-              </p>
+              <div className="eyebrow">
+  {esCliente ? 'Historial de compras' : 'Modulo comercial'}
+</div>
+
+<h1>
+  {esCliente ? 'Mis compras y facturas.' : 'Ventas, facturas y control de stock.'}
+</h1>
+
+<p>
+  {esCliente
+    ? 'Consulta tus compras realizadas, revisa el detalle de cada pedido y genera tu factura.'
+    : 'Registra ventas, descuenta inventario y genera facturas imprimibles para tus clientes.'}
+</p>
             </div>
 
             {puedeVender && (

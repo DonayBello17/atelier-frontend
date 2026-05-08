@@ -5,21 +5,24 @@ export default function Navbar({
   onLogout,
   onLoginClick,
 }) {
-  const rol = usuario?.rol || 'visitante';
+  const rol = String(usuario?.rol || 'visitante').toLowerCase();
 
   const itemsPorRol = {
     visitante: [
       { key: 'productos', label: 'Catálogo' },
     ],
+
     cliente: [
       { key: 'productos', label: 'Catálogo' },
+      { key: 'ventas', label: 'Mis compras' },
     ],
+
     empleado: [
       { key: 'productos', label: 'Productos' },
-      { key: 'clientes', label: 'Clientes' },
       { key: 'inventario', label: 'Inventario' },
       { key: 'ventas', label: 'Ventas' },
     ],
+
     admin: [
       { key: 'productos', label: 'Productos' },
       { key: 'clientes', label: 'Clientes' },
@@ -29,14 +32,14 @@ export default function Navbar({
     ],
   };
 
-  const items = itemsPorRol[rol] || itemsPorRol.visitante;
-
   const nombreRol = {
     visitante: 'Visitante',
-    admin: 'Administrador',
-    empleado: 'Empleado',
     cliente: 'Cliente',
+    empleado: 'Empleado',
+    admin: 'Administrador',
   };
+
+  const items = itemsPorRol[rol] || itemsPorRol.visitante;
 
   return (
     <>
@@ -149,8 +152,7 @@ export default function Navbar({
           text-transform: capitalize;
         }
 
-        .atelier-logout,
-        .atelier-login {
+        .atelier-logout {
           border: none;
           border-radius: 14px;
           padding: 12px 16px;
@@ -162,8 +164,7 @@ export default function Navbar({
           box-shadow: 0 10px 24px rgba(185,141,70,0.20);
         }
 
-        .atelier-logout:hover,
-        .atelier-login:hover {
+        .atelier-logout:hover {
           transform: translateY(-1px);
           box-shadow: 0 16px 28px rgba(185,141,70,0.28);
         }
@@ -213,8 +214,7 @@ export default function Navbar({
             align-items: stretch;
           }
 
-          .atelier-logout,
-          .atelier-login {
+          .atelier-logout {
             width: 100%;
           }
         }
@@ -253,7 +253,9 @@ export default function Navbar({
                 {nombreRol[rol] || 'Usuario'}
               </div>
               <div>
-                {usuario?.nombre || usuario?.email || 'Explorando catálogo'}
+                {usuario?.nombre ||
+                  usuario?.email ||
+                  (rol === 'visitante' ? 'Explorando catálogo' : 'Sesión activa')}
               </div>
             </div>
 
@@ -262,7 +264,7 @@ export default function Navbar({
                 Salir
               </button>
             ) : (
-              <button className="atelier-login" onClick={onLoginClick}>
+              <button className="atelier-logout" onClick={onLoginClick}>
                 Iniciar sesión
               </button>
             )}
