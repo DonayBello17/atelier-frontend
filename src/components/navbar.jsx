@@ -14,7 +14,7 @@ export default function Navbar({
 
     cliente: [
       { key: 'productos', label: 'Catálogo' },
-      { key: 'ventas', label: 'Mis compras' },
+     
     ],
 
     empleado: [
