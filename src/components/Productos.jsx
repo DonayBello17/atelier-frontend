@@ -51,11 +51,8 @@ export default function Productos({ usuario, onRequireLogin }) {
   const esAdmin = usuario?.rol === 'admin';
   const esVistaTienda = !usuario || usuario?.rol === 'cliente';
   const puedeVender =
-   !!usuario &&
-  (usuario?.rol === 'admin' ||
-    usuario?.rol === 'empleado' ||
-    usuario?.rol === 'cliente');
-  esAdmin || usuario?.rol === 'empleado' || usuario?.rol === 'cliente';
+    !!usuario &&
+  ['admin', 'empleado', 'cliente'].includes(usuario?.rol);
 
   const cargar = async () => {
     try {
@@ -332,65 +329,68 @@ export default function Productos({ usuario, onRequireLogin }) {
     }));
   };
 
-  const finalizarVentaCarrito = async () => {
-  
-  if (!clienteFinal) {
-    setError('Selecciona un cliente para finalizar la venta');
-    return;
-  }
+ const finalizarVentaCarrito = async () => {
+  setError('');
+  setMensaje('');
 
   if (carrito.length === 0) {
     setError('El carrito esta vacio');
     return;
   }
-    const clienteSesion = clientes.find((c) =>
-  String(c.email || '').toLowerCase() === String(usuario?.email || '').toLowerCase()
-  || String(c.nombre || '').toLowerCase() === String(usuario?.nombre || '').toLowerCase()
-);
 
-const clienteFinal =
-  usuario?.rol === 'cliente'
-    ? (usuario?.id_cliente || clienteSesion?.id_cliente)
-    : clienteCarrito;
+  const clienteSesion = clientes.find((c) => {
+    const emailCliente = String(c.email || '').toLowerCase().trim();
+    const emailUsuario = String(usuario?.email || '').toLowerCase().trim();
 
-if (!clienteFinal) {
-  setError(
+    const nombreCliente = String(c.nombre || '').toLowerCase().trim();
+    const nombreUsuario = String(usuario?.nombre || '').toLowerCase().trim();
+
+    return (
+      (emailCliente && emailUsuario && emailCliente === emailUsuario) ||
+      (nombreCliente && nombreUsuario && nombreCliente === nombreUsuario)
+    );
+  });
+
+  const clienteFinal =
     usuario?.rol === 'cliente'
-      ? 'No se encontró tu cliente registrado. Crea o revisa tu cuenta de cliente.'
-      : 'Selecciona un cliente para finalizar la venta'
-  );
-  return;
-}
+      ? clienteSesion?.id_cliente
+      : clienteCarrito;
 
-    if (carrito.length === 0) {
-      setError('El carrito esta vacio');
-      return;
-    }
+  if (!clienteFinal) {
+    setError(
+      usuario?.rol === 'cliente'
+        ? 'Tu cuenta de cliente no está enlazada con un registro de cliente. Verifica que exista un cliente con el mismo email o nombre.'
+        : 'Selecciona un cliente para finalizar la venta'
+    );
+    return;
+  }
 
-    try {
-      setVendiendo(true);
-      setError('');
+  try {
+    setVendiendo(true);
+    setError('');
 
-      await api.post('/ventas', {
-        id_cliente: clienteFinal,
-        detalles: carrito.map((item) => ({
-          id_inventario: item.id_inventario,
-          cantidad: Number(item.cantidad),
-          precio_unitario: Number(item.precio_unitario),
-        })),
-      });
+    await api.post('/ventas', {
+      id_cliente: clienteFinal,
+      detalles: carrito.map((item) => ({
+        id_inventario: item.id_inventario,
+        cantidad: Number(item.cantidad),
+        precio_unitario: Number(item.precio_unitario || item.precio || 0),
+      })),
+    });
 
-      setCarrito([]);
-      setClienteCarrito('');
-      setMostrarCarrito(false);
-      setMensaje('Venta realizada correctamente desde el carrito');
-      await cargar();
-    } catch (err) {
-      setError(err.response?.data?.message || 'No se pudo finalizar la venta');
-    } finally {
-      setVendiendo(false);
-    }
-  };
+    setCarrito([]);
+    setClienteCarrito('');
+    setMostrarCarrito(false);
+    setMensaje('Venta realizada correctamente desde el carrito');
+
+    await cargar();
+  } catch (err) {
+    console.error('Error finalizando venta:', err);
+    setError(err.response?.data?.message || 'No se pudo finalizar la venta');
+  } finally {
+    setVendiendo(false);
+  }
+};
 
   if (loading) {
     return (
@@ -781,17 +781,18 @@ if (!clienteFinal) {
         }
 
         .product-price {
-        .product-availability {
+  font-size: 26px;
+  font-weight: 900;
+  margin-bottom: 16px;
+}
+
+.product-availability {
   margin-top: -6px;
   margin-bottom: 16px;
   color: rgba(255,255,255,0.58);
   font-size: 13px;
   line-height: 1.5;
 }
-          font-size: 26px;
-          font-weight: 900;
-          margin-bottom: 16px;
-        }
 
         .product-actions {
           display: flex;
