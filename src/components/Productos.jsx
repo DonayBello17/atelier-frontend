@@ -17,7 +17,23 @@ const PLACEHOLDER =
       <text x="50%" y="58%" text-anchor="middle" fill="#ffffff" font-size="22" font-family="Arial">Sin imagen</text>
     </svg>
   `);
+const imagenesDemo = {
+  'traje formal': '/productos/traje-formal.jpg',
+  'jordan flight essentials': '/productos/jordan-flight.jpg',
+  'camisa manga larga': '/productos/camisa-manga-larga.jpg',
+};
 
+const getImagenProducto = (producto) => {
+  if (!producto) return PLACEHOLDER;
+
+  const nombre = String(producto.nombre || '').toLowerCase().trim();
+
+  if (imagenesDemo[nombre]) {
+    return imagenesDemo[nombre];
+  }
+
+  return producto.imagen_url || PLACEHOLDER;
+};
 export default function Productos({ usuario, onRequireLogin }) {
   const fileInputRef = useRef(null);
 
@@ -298,7 +314,7 @@ export default function Productos({ usuario, onRequireLogin }) {
           id_producto: productoModal.id_producto,
           producto: productoModal.nombre,
           marca: productoModal.marca,
-          imagen_url: productoModal.imagen_url,
+          imagen_url: getImagenProducto(productoModal),
           talla: inv.talla,
           color: inv.color,
           stock: inv.stock,
@@ -1279,7 +1295,7 @@ export default function Productos({ usuario, onRequireLogin }) {
                   <article key={p.id_producto} className="product-card">
                     <div className="product-image">
                       <img
-                        src={p.imagen_url || PLACEHOLDER}
+                        src={getImagenProducto(p)}
                         alt={p.nombre}
                         onError={(e) => {
                           e.currentTarget.src = PLACEHOLDER;
@@ -1376,7 +1392,7 @@ export default function Productos({ usuario, onRequireLogin }) {
                 <div className="cart-item">
                   <div className="cart-img">
                     <img
-                      src={productoModal.imagen_url || PLACEHOLDER}
+                     src={getImagenProducto(productoModal)}
                       alt={productoModal.nombre}
                       onError={(e) => {
                         e.currentTarget.src = PLACEHOLDER;
