@@ -17,20 +17,26 @@ const PLACEHOLDER =
       <text x="50%" y="58%" text-anchor="middle" fill="#ffffff" font-size="22" font-family="Arial">Sin imagen</text>
     </svg>
   `);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-const getImagenInventario = (item) => {
-  if (!item) return PLACEHOLDER;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-  const nombre = String(
-    item.nombre ||
-    item.producto ||
-    item.nombre_producto ||
-    item.producto_nombre ||
-    ''
-  )
+const normalizarTexto = (valor) =>
+  String(valor || '')
     .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .trim();
+
+const getImagenInventario = (item, productoRelacionado) => {
+  if (!item && !productoRelacionado) return PLACEHOLDER;
+
+  const nombre = normalizarTexto(
+    productoRelacionado?.nombre ||
+      item?.nombre ||
+      item?.producto ||
+      item?.nombre_producto ||
+      item?.producto_nombre
+  );
 
   if (nombre.includes('conjunto tiro')) {
     return '/productos/conjunto-tiro-25.jpg.avif';
@@ -45,10 +51,10 @@ const getImagenInventario = (item) => {
   }
 
   if (nombre.includes('camisa manga larga')) {
-    return item.imagen_url || '/productos/camisa-manga-larga';
+    return productoRelacionado?.imagen_url || item?.imagen_url || '/productos/camisa-manga-larga';
   }
 
-  const url = item.imagen_url || '';
+  const url = productoRelacionado?.imagen_url || item?.imagen_url || '';
 
   if (!url) return PLACEHOLDER;
 
@@ -839,14 +845,18 @@ export default function Inventario({ usuario }) {
                     {inventarioFiltrado.map((item) => {
                       const estado = estadoStock(item.stock);
 
+                      const productoRelacionado = productos.find(
+                        (p) => String(p.id_producto) === String(item.id_producto)
+                      );
+
                       return (
                         <tr key={item.id_inventario}>
                           <td>
                             <div className="product-cell">
                               <div className="product-thumb">
                                 <img
-                                  src={getImagenInventario(item)}
-                                  alt={item.producto}
+                                  src={getImagenInventario(item, productoRelacionado)}
+                                  alt={productoRelacionado?.nombre || item.producto}
                                   onError={(e) => {
                                     e.currentTarget.src = PLACEHOLDER;
                                   }}
@@ -854,8 +864,12 @@ export default function Inventario({ usuario }) {
                               </div>
 
                               <div>
-                                <div className="product-name">{item.producto}</div>
-                                <div className="product-brand">{item.marca || 'ATELIER'}</div>
+                                <div className="product-name">
+                                  {productoRelacionado?.nombre || item.producto}
+                                </div>
+                                <div className="product-brand">
+                                  {productoRelacionado?.marca || item.marca || 'ATELIER'}
+                                </div>
                               </div>
                             </div>
                           </td>
