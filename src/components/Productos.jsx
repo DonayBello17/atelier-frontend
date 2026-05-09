@@ -17,24 +17,51 @@ const PLACEHOLDER =
       <text x="50%" y="58%" text-anchor="middle" fill="#ffffff" font-size="22" font-family="Arial">Sin imagen</text>
     </svg>
   `);
-const imagenesDemo = {
-  'conjunto tiro 25 essentials': '/productos/conjunto-tiro-25.jpg',
-  'traje formal': '/productos/traje-formal.jpg',
-  'jordan flight essentials': '/productos/jordan-flight.jpg',
-  'camisa manga larga': '/productos/camisa-manga-larga.jpg',
-};
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 const getImagenProducto = (producto) => {
   if (!producto) return PLACEHOLDER;
 
-  const nombre = String(producto.nombre || '').toLowerCase().trim();
+  const nombre = String(producto.nombre || producto.producto || '')
+    .toLowerCase()
+    .trim();
 
-  if (imagenesDemo[nombre]) {
-    return imagenesDemo[nombre];
+  if (nombre.includes('conjunto tiro')) {
+    return '/productos/conjunto-tiro-25.jpg.avif';
   }
 
-  return producto.imagen_url || PLACEHOLDER;
+  if (nombre.includes('traje formal')) {
+    return '/productos/traje-formal.jpg.png';
+  }
+
+  if (nombre.includes('jordan')) {
+    return '/productos/jordan-flight.jpg.avif';
+  }
+
+  if (nombre.includes('camisa manga larga')) {
+    return producto.imagen_url || PLACEHOLDER;
+  }
+
+  const url = producto.imagen_url || '';
+
+  if (!url) return PLACEHOLDER;
+
+  if (url.startsWith('http://localhost:4000')) {
+    return url.replace('http://localhost:4000', API_URL);
+  }
+
+  if (url.startsWith('http://localhost:3000')) {
+    return url.replace('http://localhost:3000', API_URL);
+  }
+
+  if (url.startsWith('/uploads')) {
+    return `${API_URL}${url}`;
+  }
+
+  return url;
 };
+
 export default function Productos({ usuario, onRequireLogin }) {
   const fileInputRef = useRef(null);
 
@@ -67,9 +94,10 @@ export default function Productos({ usuario, onRequireLogin }) {
 
   const esAdmin = usuario?.rol === 'admin';
   const esVistaTienda = !usuario || usuario?.rol === 'cliente';
+
   const puedeVender =
     !!usuario &&
-  ['admin', 'empleado', 'cliente'].includes(usuario?.rol);
+    ['admin', 'empleado', 'cliente'].includes(usuario?.rol);
 
   const cargar = async () => {
     try {
@@ -233,7 +261,7 @@ export default function Productos({ usuario, onRequireLogin }) {
       foto: null,
     });
 
-    setPreview(p.imagen_url || '');
+    setPreview(getImagenProducto(p));
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -263,6 +291,7 @@ export default function Productos({ usuario, onRequireLogin }) {
     setIdInventarioModal(variantes[0]?.id_inventario || '');
     setCantidadModal(1);
     setMensaje('');
+    setError('');
   };
 
   const cerrarModalCarrito = () => {
@@ -346,68 +375,68 @@ export default function Productos({ usuario, onRequireLogin }) {
     }));
   };
 
- const finalizarVentaCarrito = async () => {
-  setError('');
-  setMensaje('');
-
-  if (carrito.length === 0) {
-    setError('El carrito esta vacio');
-    return;
-  }
-
-  const clienteSesion = clientes.find((c) => {
-    const emailCliente = String(c.email || '').toLowerCase().trim();
-    const emailUsuario = String(usuario?.email || '').toLowerCase().trim();
-
-    const nombreCliente = String(c.nombre || '').toLowerCase().trim();
-    const nombreUsuario = String(usuario?.nombre || '').toLowerCase().trim();
-
-    return (
-      (emailCliente && emailUsuario && emailCliente === emailUsuario) ||
-      (nombreCliente && nombreUsuario && nombreCliente === nombreUsuario)
-    );
-  });
-
-  const clienteFinal =
-    usuario?.rol === 'cliente'
-      ? clienteSesion?.id_cliente
-      : clienteCarrito;
-
-  if (!clienteFinal) {
-    setError(
-      usuario?.rol === 'cliente'
-        ? 'Tu cuenta de cliente no está enlazada con un registro de cliente. Verifica que exista un cliente con el mismo email o nombre.'
-        : 'Selecciona un cliente para finalizar la venta'
-    );
-    return;
-  }
-
-  try {
-    setVendiendo(true);
+  const finalizarVentaCarrito = async () => {
     setError('');
+    setMensaje('');
 
-    await api.post('/ventas', {
-      id_cliente: clienteFinal,
-      detalles: carrito.map((item) => ({
-        id_inventario: item.id_inventario,
-        cantidad: Number(item.cantidad),
-        precio_unitario: Number(item.precio_unitario || item.precio || 0),
-      })),
+    if (carrito.length === 0) {
+      setError('El carrito esta vacio');
+      return;
+    }
+
+    const clienteSesion = clientes.find((c) => {
+      const emailCliente = String(c.email || '').toLowerCase().trim();
+      const emailUsuario = String(usuario?.email || '').toLowerCase().trim();
+
+      const nombreCliente = String(c.nombre || '').toLowerCase().trim();
+      const nombreUsuario = String(usuario?.nombre || '').toLowerCase().trim();
+
+      return (
+        (emailCliente && emailUsuario && emailCliente === emailUsuario) ||
+        (nombreCliente && nombreUsuario && nombreCliente === nombreUsuario)
+      );
     });
 
-    setCarrito([]);
-    setClienteCarrito('');
-    setMostrarCarrito(false);
-    setMensaje('Venta realizada correctamente desde el carrito');
+    const clienteFinal =
+      usuario?.rol === 'cliente'
+        ? clienteSesion?.id_cliente
+        : clienteCarrito;
 
-    await cargar();
-  } catch (err) {
-    console.error('Error finalizando venta:', err);
-    setError(err.response?.data?.message || 'No se pudo finalizar la venta');
-  } finally {
-    setVendiendo(false);
-  }
-};
+    if (!clienteFinal) {
+      setError(
+        usuario?.rol === 'cliente'
+          ? 'Tu cuenta de cliente no está enlazada con un registro de cliente. Verifica que exista un cliente con el mismo email o nombre.'
+          : 'Selecciona un cliente para finalizar la venta'
+      );
+      return;
+    }
+
+    try {
+      setVendiendo(true);
+      setError('');
+
+      await api.post('/ventas', {
+        id_cliente: clienteFinal,
+        detalles: carrito.map((item) => ({
+          id_inventario: item.id_inventario,
+          cantidad: Number(item.cantidad),
+          precio_unitario: Number(item.precio_unitario || item.precio || 0),
+        })),
+      });
+
+      setCarrito([]);
+      setClienteCarrito('');
+      setMostrarCarrito(false);
+      setMensaje('Venta realizada correctamente desde el carrito');
+
+      await cargar();
+    } catch (err) {
+      console.error('Error finalizando venta:', err);
+      setError(err.response?.data?.message || 'No se pudo finalizar la venta');
+    } finally {
+      setVendiendo(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -798,18 +827,18 @@ export default function Productos({ usuario, onRequireLogin }) {
         }
 
         .product-price {
-  font-size: 26px;
-  font-weight: 900;
-  margin-bottom: 16px;
-}
+          font-size: 26px;
+          font-weight: 900;
+          margin-bottom: 16px;
+        }
 
-.product-availability {
-  margin-top: -6px;
-  margin-bottom: 16px;
-  color: rgba(255,255,255,0.58);
-  font-size: 13px;
-  line-height: 1.5;
-}
+        .product-availability {
+          margin-top: -6px;
+          margin-bottom: 16px;
+          color: rgba(255,255,255,0.58);
+          font-size: 13px;
+          line-height: 1.5;
+        }
 
         .product-actions {
           display: flex;
@@ -939,51 +968,49 @@ export default function Productos({ usuario, onRequireLogin }) {
           font-weight: 900;
         }
 
-.atelier-footer {
-  margin-top: 42px;
-  padding: 28px;
-  border-radius: 26px;
-  background: rgba(18, 19, 24, 0.74);
-  border: 1px solid rgba(255,255,255,0.10);
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  align-items: center;
-  color: rgba(255,255,255,0.68);
-}
+        .atelier-footer {
+          margin-top: 42px;
+          padding: 28px;
+          border-radius: 26px;
+          background: rgba(18, 19, 24, 0.74);
+          border: 1px solid rgba(255,255,255,0.10);
+          display: flex;
+          justify-content: space-between;
+          gap: 24px;
+          align-items: center;
+          color: rgba(255,255,255,0.68);
+        }
 
-.footer-brand {
-  font-family: Georgia, 'Times New Roman', serif;
-  letter-spacing: 6px;
-  color: #f2eee7;
-  font-size: 26px;
-  margin-bottom: 8px;
-}
+        .footer-brand {
+          font-family: Georgia, 'Times New Roman', serif;
+          letter-spacing: 6px;
+          color: #f2eee7;
+          font-size: 26px;
+          margin-bottom: 8px;
+        }
 
-.atelier-footer p {
-  margin: 0;
-  max-width: 520px;
-  line-height: 1.7;
-  font-size: 14px;
-}
+        .atelier-footer p {
+          margin: 0;
+          max-width: 520px;
+          line-height: 1.7;
+          font-size: 14px;
+        }
 
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-end;
-}
+        .footer-links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          justify-content: flex-end;
+        }
 
-.footer-links span {
-  padding: 9px 12px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.10);
-  font-size: 12px;
-  color: rgba(255,255,255,0.78);
-}
-
-
+        .footer-links span {
+          padding: 9px 12px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.10);
+          font-size: 12px;
+          color: rgba(255,255,255,0.78);
+        }
 
         @media (max-width: 1200px) {
           .stats-grid {
@@ -996,14 +1023,15 @@ export default function Productos({ usuario, onRequireLogin }) {
         }
 
         @media (max-width: 760px) {
-        .atelier-footer {
-  flex-direction: column;
-  align-items: flex-start;
-}
+          .atelier-footer {
+            flex-direction: column;
+            align-items: flex-start;
+          }
 
-.footer-links {
-  justify-content: flex-start;
-}
+          .footer-links {
+            justify-content: flex-start;
+          }
+
           .products-page {
             padding: 16px;
           }
@@ -1046,20 +1074,20 @@ export default function Productos({ usuario, onRequireLogin }) {
           <section className="products-hero">
             <div className="hero-content">
               <div className="eyebrow">
-  {esVistaTienda ? 'Atelier collection' : 'Catálogo premium'}
-</div>
+                {esVistaTienda ? 'Atelier collection' : 'Catálogo premium'}
+              </div>
 
-<h1>
-  {esVistaTienda
-    ? 'Colección premium para vestir con estilo.'
-    : 'Productos con foto, stock y carrito.'}
-</h1>
+              <h1>
+                {esVistaTienda
+                  ? 'Colección premium para vestir con estilo.'
+                  : 'Productos con foto, stock y carrito.'}
+              </h1>
 
-<p>
-  {esVistaTienda
-    ? 'Explora prendas exclusivas, elige tu talla y compra de forma rápida cuando encuentres tu favorita.'
-    : 'Agrega productos con imagen desde tu ordenador y vende desde el catálogo usando el carrito.'}
-</p>
+              <p>
+                {esVistaTienda
+                  ? 'Explora prendas exclusivas, elige tu talla y compra de forma rápida cuando encuentres tu favorita.'
+                  : 'Agrega productos con imagen desde tu ordenador y vende desde el catálogo usando el carrito.'}
+              </p>
             </div>
 
             {puedeVender && (
@@ -1072,59 +1100,59 @@ export default function Productos({ usuario, onRequireLogin }) {
           </section>
 
           <section className="stats-grid">
-  {esVistaTienda ? (
-    <>
-      <div className="stat-card">
-        <div className="stat-label">Nueva colección</div>
-        <div className="stat-value">2026</div>
-        <div className="stat-accent">Piezas seleccionadas</div>
-      </div>
+            {esVistaTienda ? (
+              <>
+                <div className="stat-card">
+                  <div className="stat-label">Nueva colección</div>
+                  <div className="stat-value">2026</div>
+                  <div className="stat-accent">Piezas seleccionadas</div>
+                </div>
 
-      <div className="stat-card">
-        <div className="stat-label">Cambios</div>
-        <div className="stat-value">48h</div>
-        <div className="stat-accent">Por talla o ajuste</div>
-      </div>
+                <div className="stat-card">
+                  <div className="stat-label">Cambios</div>
+                  <div className="stat-value">48h</div>
+                  <div className="stat-accent">Por talla o ajuste</div>
+                </div>
 
-      <div className="stat-card">
-        <div className="stat-label">Compra segura</div>
-        <div className="stat-value">100%</div>
-        <div className="stat-accent">Proceso protegido</div>
-      </div>
+                <div className="stat-card">
+                  <div className="stat-label">Compra segura</div>
+                  <div className="stat-value">100%</div>
+                  <div className="stat-accent">Proceso protegido</div>
+                </div>
 
-      <div className="stat-card">
-        <div className="stat-label">Estilo premium</div>
-        <div className="stat-value">AT</div>
-        <div className="stat-accent">Atelier selection</div>
-      </div>
-    </>
-  ) : (
-    <>
-      <div className="stat-card">
-        <div className="stat-label">Total productos</div>
-        <div className="stat-value">{stats.total}</div>
-        <div className="stat-accent">Catálogo general</div>
-      </div>
+                <div className="stat-card">
+                  <div className="stat-label">Estilo premium</div>
+                  <div className="stat-value">AT</div>
+                  <div className="stat-accent">Atelier selection</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="stat-card">
+                  <div className="stat-label">Total productos</div>
+                  <div className="stat-value">{stats.total}</div>
+                  <div className="stat-accent">Catálogo general</div>
+                </div>
 
-      <div className="stat-card">
-        <div className="stat-label">Caballeros</div>
-        <div className="stat-value">{stats.caballeros}</div>
-        <div className="stat-accent">Colección masculina</div>
-      </div>
+                <div className="stat-card">
+                  <div className="stat-label">Caballeros</div>
+                  <div className="stat-value">{stats.caballeros}</div>
+                  <div className="stat-accent">Colección masculina</div>
+                </div>
 
-      <div className="stat-card">
-        <div className="stat-label">Damas</div>
-        <div className="stat-value">{stats.damas}</div>
-        <div className="stat-accent">Colección femenina</div>
-      </div>
+                <div className="stat-card">
+                  <div className="stat-label">Damas</div>
+                  <div className="stat-value">{stats.damas}</div>
+                  <div className="stat-accent">Colección femenina</div>
+                </div>
 
-      <div className="stat-card">
-        <div className="stat-label">Valor catálogo</div>
-        <div className="stat-value">{formatPrecio(stats.valorTotal)}</div>
-        <div className="stat-accent">Suma de precios</div>
-      </div>
-    </>
-  )}
+                <div className="stat-card">
+                  <div className="stat-label">Valor catálogo</div>
+                  <div className="stat-value">{formatPrecio(stats.valorTotal)}</div>
+                  <div className="stat-accent">Suma de precios</div>
+                </div>
+              </>
+            )}
           </section>
 
           <section className="toolbar">
@@ -1218,7 +1246,13 @@ export default function Productos({ usuario, onRequireLogin }) {
 
                 <div className="photo-box">
                   {preview || form.imagen_url ? (
-                    <img src={preview || form.imagen_url} alt="Vista previa" />
+                    <img
+                      src={preview || form.imagen_url}
+                      alt="Vista previa"
+                      onError={(e) => {
+                        e.currentTarget.src = PLACEHOLDER;
+                      }}
+                    />
                   ) : (
                     <div className="photo-empty">
                       <div className="photo-empty-title">Imagen del producto</div>
@@ -1248,14 +1282,14 @@ export default function Productos({ usuario, onRequireLogin }) {
 
             <div className="glass-card">
               <h2 className="card-title">
-  {esVistaTienda ? 'Encuentra tu próxima prenda' : 'Explorar catálogo'}
-</h2>
+                {esVistaTienda ? 'Encuentra tu próxima prenda' : 'Explorar catálogo'}
+              </h2>
 
-<p className="card-subtitle">
-  {esVistaTienda
-    ? 'Busca por nombre o marca y descubre piezas disponibles para tu estilo.'
-    : 'Busca productos por nombre o marca.'}
-</p>
+              <p className="card-subtitle">
+                {esVistaTienda
+                  ? 'Busca por nombre o marca y descubre piezas disponibles para tu estilo.'
+                  : 'Busca productos por nombre o marca.'}
+              </p>
 
               <div className="search-row">
                 <div className="field">
@@ -1313,10 +1347,10 @@ export default function Productos({ usuario, onRequireLogin }) {
                       <h3 className="product-name">{p.nombre}</h3>
                       <div className="product-price">{formatPrecio(p.precio)}</div>
                       <div className="product-availability">
-  {disponible
-    ? 'Disponible en tallas y colores seleccionados'
-    : 'No disponible actualmente'}
-</div>
+                        {disponible
+                          ? 'Disponible en tallas y colores seleccionados'
+                          : 'No disponible actualmente'}
+                      </div>
 
                       <div className="product-actions">
                         {puedeVender && (
@@ -1329,14 +1363,15 @@ export default function Productos({ usuario, onRequireLogin }) {
                             {disponible ? 'Agregar al carrito' : 'Sin stock'}
                           </button>
                         )}
+
                         {!usuario && (
-  <button
-    className="btn-gold"
-    onClick={onRequireLogin}
-  >
-    Iniciar sesión para comprar
-  </button>
-)}
+                          <button
+                            className="btn-gold"
+                            onClick={onRequireLogin}
+                          >
+                            Iniciar sesión para comprar
+                          </button>
+                        )}
 
                         {esAdmin && (
                           <>
@@ -1356,8 +1391,8 @@ export default function Productos({ usuario, onRequireLogin }) {
               })}
             </section>
           )}
-          
-                    {esVistaTienda && (
+
+          {esVistaTienda && (
             <footer className="atelier-footer">
               <div>
                 <div className="footer-brand">ATELIER</div>
@@ -1393,7 +1428,7 @@ export default function Productos({ usuario, onRequireLogin }) {
                 <div className="cart-item">
                   <div className="cart-img">
                     <img
-                     src={getImagenProducto(productoModal)}
+                      src={getImagenProducto(productoModal)}
                       alt={productoModal.nombre}
                       onError={(e) => {
                         e.currentTarget.src = PLACEHOLDER;
@@ -1403,7 +1438,9 @@ export default function Productos({ usuario, onRequireLogin }) {
 
                   <div>
                     <div className="cart-name">{productoModal.nombre}</div>
-                    <div className="cart-meta">{productoModal.marca || 'ATELIER'} · {formatPrecio(productoModal.precio)}</div>
+                    <div className="cart-meta">
+                      {productoModal.marca || 'ATELIER'} · {formatPrecio(productoModal.precio)}
+                    </div>
                   </div>
                 </div>
 
@@ -1448,33 +1485,36 @@ export default function Productos({ usuario, onRequireLogin }) {
               <div className="modal-card">
                 <div className="modal-header">
                   <h2 className="modal-title">Carrito</h2>
-                  <button className="btn-dark" onClick={() => setMostrarCarrito(false)}>Cerrar</button>
+                  <button className="btn-dark" onClick={() => setMostrarCarrito(false)}>
+                    Cerrar
+                  </button>
                 </div>
 
-             {usuario?.rol !== 'cliente' && (
-  <div className="field">
-    <label>Cliente</label>
-    <select
-      className="premium-select"
-      value={clienteCarrito}
-      onChange={(e) => setClienteCarrito(e.target.value)}
-    >
-      <option value="">Selecciona un cliente</option>
-      {clientes
-        .filter((cliente) => cliente.estado !== 'inactivo')
-        .map((cliente) => (
-          <option key={cliente.id_cliente} value={cliente.id_cliente}>
-            {cliente.nombre}
-          </option>
-        ))}
-    </select>
-  </div>
-)}
-{usuario?.rol === 'cliente' && (
-  <div className="success-box">
-    Comprarás como {usuario?.nombre || usuario?.email}
-  </div>
-)}
+                {usuario?.rol !== 'cliente' && (
+                  <div className="field">
+                    <label>Cliente</label>
+                    <select
+                      className="premium-select"
+                      value={clienteCarrito}
+                      onChange={(e) => setClienteCarrito(e.target.value)}
+                    >
+                      <option value="">Selecciona un cliente</option>
+                      {clientes
+                        .filter((cliente) => cliente.estado !== 'inactivo')
+                        .map((cliente) => (
+                          <option key={cliente.id_cliente} value={cliente.id_cliente}>
+                            {cliente.nombre}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )}
+
+                {usuario?.rol === 'cliente' && (
+                  <div className="success-box">
+                    Comprarás como {usuario?.nombre || usuario?.email}
+                  </div>
+                )}
 
                 {carrito.length === 0 ? (
                   <div className="empty-box">
