@@ -18,6 +18,7 @@ const PLACEHOLDER =
     </svg>
   `);
 const imagenesDemo = {
+  'conjunto tiro 25 essentials': '/productos/conjunto-tiro-25.jpg',
   'traje formal': '/productos/traje-formal.jpg',
   'jordan flight essentials': '/productos/jordan-flight.jpg',
   'camisa manga larga': '/productos/camisa-manga-larga.jpg',
