@@ -17,6 +17,55 @@ const PLACEHOLDER =
       <text x="50%" y="58%" text-anchor="middle" fill="#ffffff" font-size="22" font-family="Arial">Sin imagen</text>
     </svg>
   `);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
+const getImagenInventario = (item) => {
+  if (!item) return PLACEHOLDER;
+
+  const nombre = String(
+    item.nombre ||
+    item.producto ||
+    item.nombre_producto ||
+    item.producto_nombre ||
+    ''
+  )
+    .toLowerCase()
+    .trim();
+
+  if (nombre.includes('conjunto tiro')) {
+    return '/productos/conjunto-tiro-25.jpg.avif';
+  }
+
+  if (nombre.includes('traje formal')) {
+    return '/productos/traje-formal.jpg.png';
+  }
+
+  if (nombre.includes('jordan')) {
+    return '/productos/jordan-flight.jpg.avif';
+  }
+
+  if (nombre.includes('camisa manga larga')) {
+    return item.imagen_url || '/productos/camisa-manga-larga';
+  }
+
+  const url = item.imagen_url || '';
+
+  if (!url) return PLACEHOLDER;
+
+  if (url.startsWith('http://localhost:4000')) {
+    return url.replace('http://localhost:4000', API_URL);
+  }
+
+  if (url.startsWith('http://localhost:3000')) {
+    return url.replace('http://localhost:3000', API_URL);
+  }
+
+  if (url.startsWith('/uploads')) {
+    return `${API_URL}${url}`;
+  }
+
+  return url;
+};
 
 export default function Inventario({ usuario }) {
   const [inventario, setInventario] = useState([]);
@@ -796,7 +845,7 @@ export default function Inventario({ usuario }) {
                             <div className="product-cell">
                               <div className="product-thumb">
                                 <img
-                                  src={item.imagen_url || PLACEHOLDER}
+                                  src={getImagenInventario(item)}
                                   alt={item.producto}
                                   onError={(e) => {
                                     e.currentTarget.src = PLACEHOLDER;
