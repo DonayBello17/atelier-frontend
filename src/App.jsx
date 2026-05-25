@@ -66,24 +66,28 @@ function GlobalStyles() {
         min-height: calc(100vh - 90px);
       }
               
-      .sales-hero,
-      .inventory-hero,
-      .clients-hero,
-      .clientes-hero,
-      .sizes-hero,
-      .tallas-hero {
+      .products-page .products-hero,
+      .sales-page .sales-hero,
+      .inventory-page .inventory-hero,
+      .clients-page .clients-hero,
+      .clientes-page .clientes-hero,
+      .sizes-page .sizes-hero,
+      .tallas-page .tallas-hero,
+      .tallas-page .sizes-hero {
         background:
           radial-gradient(circle at top right, rgba(214,180,105,0.10), transparent 26%),
           linear-gradient(135deg, #08090b 0%, #131418 48%, #090a0c 100%) !important;
         min-height: 220px !important;
       }
 
-      .sales-hero::before,
-      .inventory-hero::before,
-      .clients-hero::before,
-      .clientes-hero::before,
-      .sizes-hero::before,
-      .tallas-hero::before {
+      .products-page .products-hero::before,
+      .sales-page .sales-hero::before,
+      .inventory-page .inventory-hero::before,
+      .clients-page .clients-hero::before,
+      .clientes-page .clientes-hero::before,
+      .sizes-page .sizes-hero::before,
+      .tallas-page .tallas-hero::before,
+      .tallas-page .sizes-hero::before {
         background:
           radial-gradient(circle at top left, rgba(255,255,255,0.06), transparent 28%),
           radial-gradient(circle at bottom right, rgba(214,180,105,0.12), transparent 30%) !important;
