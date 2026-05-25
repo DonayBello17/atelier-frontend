@@ -138,15 +138,16 @@ export default function Tallas({ usuario }) {
         .hero {
           position: relative;
           overflow: hidden;
-          min-height: 280px;
+          min-height: 220px;
           border-radius: 30px;
           padding: 34px;
           display: flex;
           align-items: flex-end;
           border: 1px solid rgba(255,255,255,0.10);
           background:
-            linear-gradient(to right, rgba(0,0,0,0.58), rgba(0,0,0,0.28)),
-            linear-gradient(to top, rgba(0,0,0,0.60), rgba(0,0,0,0.10)),
+         background:
+  radial-gradient(circle at top right, rgba(214,180,105,0.10), transparent 26%),
+  linear-gradient(135deg, #08090b 0%, #131418 48%, #090a0c 100%);
             url(${bgImage});
           background-size: cover;
           background-position: center;
