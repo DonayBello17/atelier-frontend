@@ -80,7 +80,7 @@ export default function App() {
 
   const [vista, setVista] = useState('productos');
 
-  const rol = usuario?.rol || 'visitante';
+  const rol = String(usuario?.rol || 'visitante').toLowerCase().trim();
 
   const vistasPermitidas = useMemo(() => {
     if (!usuario) {
@@ -88,7 +88,7 @@ export default function App() {
     }
 
     if (rol === 'cliente') {
-      return ['productos'];
+      return ['productos', 'ventas'];
     }
 
     if (rol === 'empleado') {
