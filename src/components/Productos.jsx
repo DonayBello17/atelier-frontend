@@ -91,6 +91,7 @@ export default function Productos({ usuario, onRequireLogin }) {
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [vendiendo, setVendiendo] = useState(false);
   const [mensaje, setMensaje] = useState('');
+  const [confirmarCompra, setConfirmarCompra] = useState(false);
 
   const esAdmin = usuario?.rol === 'admin';
   const esVistaTienda = !usuario || usuario?.rol === 'cliente';
@@ -178,6 +179,28 @@ export default function Productos({ usuario, onRequireLogin }) {
     return inventario.filter((item) => {
       return String(item.id_producto) === String(producto.id_producto) && Number(item.stock) > 0;
     });
+  };
+
+  const getResumenTallasProducto = (producto) => {
+    const variantes = getVariantesProducto(producto);
+
+    const tallas = [...new Set(
+      variantes.map((item) => item.talla).filter(Boolean)
+    )];
+
+    const colores = [...new Set(
+      variantes.map((item) => item.color).filter(Boolean)
+    )];
+
+    const totalStock = variantes.reduce((acc, item) => {
+      return acc + (Number(item.stock) || 0);
+    }, 0);
+
+    return {
+      tallas: tallas.length ? tallas.join(', ') : 'Sin tallas disponibles',
+      colores: colores.length ? colores.join(', ') : 'Sin color definido',
+      totalStock,
+    };
   };
 
   const limpiarForm = () => {
@@ -375,6 +398,18 @@ export default function Productos({ usuario, onRequireLogin }) {
     }));
   };
 
+  const solicitarFinalizarVenta = () => {
+    setError('');
+    setMensaje('');
+
+    if (carrito.length === 0) {
+      setError('El carrito esta vacio');
+      return;
+    }
+
+    setConfirmarCompra(true);
+  };
+
   const finalizarVentaCarrito = async () => {
     setError('');
     setMensaje('');
@@ -427,6 +462,7 @@ export default function Productos({ usuario, onRequireLogin }) {
       setCarrito([]);
       setClienteCarrito('');
       setMostrarCarrito(false);
+      setConfirmarCompra(false);
       setMensaje('Venta realizada correctamente desde el carrito');
 
       await cargar();
@@ -840,6 +876,76 @@ export default function Productos({ usuario, onRequireLogin }) {
           line-height: 1.5;
         }
 
+        .product-sizes-box {
+          margin-bottom: 16px;
+          padding: 12px 14px;
+          border-radius: 16px;
+          background: rgba(255,255,255,0.045);
+          border: 1px solid rgba(255,255,255,0.08);
+          color: rgba(255,255,255,0.72);
+          font-size: 13px;
+          line-height: 1.7;
+        }
+
+        .product-sizes-box strong {
+          color: #d6b469;
+        }
+
+        .confirm-card {
+          max-width: 640px;
+        }
+
+        .confirm-text {
+          color: rgba(255,255,255,0.72);
+          line-height: 1.7;
+          margin: 0 0 16px;
+        }
+
+        .confirm-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+          padding: 14px;
+          border-radius: 16px;
+          background: rgba(255,255,255,0.035);
+          border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .confirm-item div {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .confirm-item span {
+          color: rgba(255,255,255,0.62);
+          font-size: 13px;
+        }
+
+        .customer-catalog-page {
+          padding-top: 16px;
+        }
+
+        .customer-catalog-page .products-hero,
+        .customer-catalog-page .stats-grid {
+          display: none;
+        }
+
+        .customer-catalog-page .toolbar {
+          margin-top: 0;
+          grid-template-columns: 1fr;
+        }
+
+        .customer-catalog-page .products-grid {
+          margin-top: 18px;
+          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        }
+
+        .customer-catalog-page .product-image {
+          height: 230px;
+        }
+
         .product-actions {
           display: flex;
           flex-wrap: wrap;
@@ -1069,7 +1175,7 @@ export default function Productos({ usuario, onRequireLogin }) {
         }
       `}</style>
 
-      <div className="products-page">
+      <div className={`products-page ${esVistaTienda ? 'customer-catalog-page' : ''}`}>
         <div className="products-container">
           <section className="products-hero">
             <div className="hero-content">
@@ -1325,6 +1431,7 @@ export default function Productos({ usuario, onRequireLogin }) {
               {productosFiltrados.map((p) => {
                 const variantes = getVariantesProducto(p);
                 const disponible = variantes.length > 0;
+                const resumenTallas = getResumenTallasProducto(p);
 
                 return (
                   <article key={p.id_producto} className="product-card">
@@ -1351,6 +1458,14 @@ export default function Productos({ usuario, onRequireLogin }) {
                           ? 'Disponible en tallas y colores seleccionados'
                           : 'No disponible actualmente'}
                       </div>
+
+                      {disponible && (
+                        <div className="product-sizes-box">
+                          <div><strong>Tallas:</strong> {resumenTallas.tallas}</div>
+                          <div><strong>Colores:</strong> {resumenTallas.colores}</div>
+                          <div><strong>Stock total:</strong> {resumenTallas.totalStock} uds</div>
+                        </div>
+                      )}
 
                       <div className="product-actions">
                         {puedeVender && (
@@ -1580,7 +1695,7 @@ export default function Productos({ usuario, onRequireLogin }) {
                 <div className="actions-row">
                   <button
                     className="btn-gold"
-                    onClick={finalizarVentaCarrito}
+                    onClick={solicitarFinalizarVenta}
                     disabled={vendiendo || carrito.length === 0}
                   >
                     {vendiendo ? 'Procesando...' : 'Finalizar venta'}
@@ -1596,6 +1711,59 @@ export default function Productos({ usuario, onRequireLogin }) {
                 </div>
 
                 {error && <div className="error-box">{error}</div>}
+              </div>
+            </div>
+          )}
+
+
+          {confirmarCompra && (
+            <div className="modal-backdrop">
+              <div className="modal-card confirm-card">
+                <div className="modal-header">
+                  <h2 className="modal-title">Confirmar compra</h2>
+                  <button className="btn-dark" onClick={() => setConfirmarCompra(false)}>
+                    Cancelar
+                  </button>
+                </div>
+
+                <p className="confirm-text">
+                  Revisa tu pedido antes de finalizar. Al confirmar, se registrará la venta y se descontará el stock.
+                </p>
+
+                <div className="cart-list">
+                  {carrito.map((item) => (
+                    <div className="confirm-item" key={`confirm-${item.id_inventario}`}>
+                      <div>
+                        <strong>{item.producto}</strong>
+                        <span>Talla {item.talla} · {item.color || 'Sin color'} · Cantidad {item.cantidad}</span>
+                      </div>
+                      <strong>{formatPrecio((Number(item.precio_unitario) || 0) * (Number(item.cantidad) || 0))}</strong>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="cart-total">
+                  <div>
+                    <div className="card-title" style={{ margin: 0 }}>Total a pagar</div>
+                    <div className="card-subtitle" style={{ margin: 0 }}>
+                      {carritoUnidades} unidades seleccionadas
+                    </div>
+                  </div>
+                  <div className="cart-total-value">{formatPrecio(carritoTotal)}</div>
+                </div>
+
+                <div className="actions-row">
+                  <button className="btn-dark" onClick={() => setConfirmarCompra(false)}>
+                    Cancelar
+                  </button>
+                  <button
+                    className="btn-gold"
+                    onClick={finalizarVentaCarrito}
+                    disabled={vendiendo}
+                  >
+                    {vendiendo ? 'Procesando...' : 'Sí, confirmar compra'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
