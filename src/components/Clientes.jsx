@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../api/api';
-import bgImage from '../assets/login-bg.jpg';
 
 export default function Clientes({ usuario }) {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('todos');
+  const [comprasFiltro, setComprasFiltro] = useState('todos');
+  const [ordenCliente, setOrdenCliente] = useState('recientes');
+  const [paginaClientes, setPaginaClientes] = useState(1);
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [editando, setEditando] = useState(null);
+
+  const clientesPorPagina = 10;
 
   const [form, setForm] = useState({
     nombre: '',
@@ -38,20 +43,82 @@ export default function Clientes({ usuario }) {
   }, []);
 
   const clientesFiltrados = useMemo(() => {
-    return clientes.filter((cliente) => {
+    const textoBusqueda = busqueda.toLowerCase().trim();
+
+    const resultado = clientes.filter((cliente) => {
       const texto = `
         ${cliente.nombre || ''}
         ${cliente.telefono || ''}
         ${cliente.email || ''}
         ${cliente.direccion || ''}
+        ${cliente.estado || ''}
       `.toLowerCase();
 
-      return texto.includes(busqueda.toLowerCase());
+      const coincideBusqueda = texto.includes(textoBusqueda);
+
+      const estaInactivo = cliente.estado === 'inactivo';
+      const coincideEstado =
+        estadoFiltro === 'todos' ||
+        (estadoFiltro === 'activos' && !estaInactivo) ||
+        (estadoFiltro === 'inactivos' && estaInactivo);
+
+      const compras = Number(cliente.compras) || 0;
+      const coincideCompras =
+        comprasFiltro === 'todos' ||
+        (comprasFiltro === 'con-compras' && compras > 0) ||
+        (comprasFiltro === 'sin-compras' && compras === 0);
+
+      return coincideBusqueda && coincideEstado && coincideCompras;
     });
-  }, [clientes, busqueda]);
+
+    return [...resultado].sort((a, b) => {
+      if (ordenCliente === 'nombre') {
+        return String(a.nombre || '').localeCompare(String(b.nombre || ''));
+      }
+
+      if (ordenCliente === 'compras-mayor') {
+        return (Number(b.compras) || 0) - (Number(a.compras) || 0);
+      }
+
+      if (ordenCliente === 'total-mayor') {
+        return (Number(b.total_gastado) || 0) - (Number(a.total_gastado) || 0);
+      }
+
+      if (ordenCliente === 'total-menor') {
+        return (Number(a.total_gastado) || 0) - (Number(b.total_gastado) || 0);
+      }
+
+      return Number(b.id_cliente || 0) - Number(a.id_cliente || 0);
+    });
+  }, [clientes, busqueda, estadoFiltro, comprasFiltro, ordenCliente]);
+
+  const totalPaginasClientes = Math.max(
+    1,
+    Math.ceil(clientesFiltrados.length / clientesPorPagina)
+  );
+
+  useEffect(() => {
+    setPaginaClientes(1);
+  }, [busqueda, estadoFiltro, comprasFiltro, ordenCliente]);
+
+  useEffect(() => {
+    if (paginaClientes > totalPaginasClientes) {
+      setPaginaClientes(totalPaginasClientes);
+    }
+  }, [paginaClientes, totalPaginasClientes]);
+
+  const clientesPaginados = useMemo(() => {
+    const inicio = (paginaClientes - 1) * clientesPorPagina;
+    const fin = inicio + clientesPorPagina;
+
+    return clientesFiltrados.slice(inicio, fin);
+  }, [clientesFiltrados, paginaClientes]);
 
   const stats = useMemo(() => {
     const total = clientes.length;
+
+    const activos = clientes.filter((cliente) => cliente.estado !== 'inactivo').length;
+    const inactivos = clientes.filter((cliente) => cliente.estado === 'inactivo').length;
 
     const conCompras = clientes.filter((cliente) => {
       return Number(cliente.compras) > 0;
@@ -67,6 +134,8 @@ export default function Clientes({ usuario }) {
 
     return {
       total,
+      activos,
+      inactivos,
       conCompras,
       clientesVip,
       ingresos,
@@ -101,6 +170,14 @@ export default function Clientes({ usuario }) {
 
     setEditando(null);
     setError('');
+  };
+
+  const limpiarFiltros = () => {
+    setBusqueda('');
+    setEstadoFiltro('todos');
+    setComprasFiltro('todos');
+    setOrdenCliente('recientes');
+    setPaginaClientes(1);
   };
 
   const guardar = async () => {
@@ -172,7 +249,8 @@ export default function Clientes({ usuario }) {
       );
     }
   };
-    const cambiarEstadoCliente = async (cliente) => {
+
+  const cambiarEstadoCliente = async (cliente) => {
     const estaInactivo = cliente.estado === 'inactivo';
     const accion = estaInactivo ? 'activar' : 'desactivar';
 
@@ -275,38 +353,35 @@ export default function Clientes({ usuario }) {
         }
 
         .clients-hero {
-  position: relative;
-  overflow: hidden;
-  min-height: 270px;
-  border-radius: 30px;
-  padding: 34px;
-  display: flex;
-  align-items: center;
-  border: 1px solid rgba(255,255,255,0.10);
-  background:
-    linear-gradient(90deg, rgba(0,0,0,0.72), rgba(0,0,0,0.30)),
-    linear-gradient(to top, rgba(0,0,0,0.62), rgba(0,0,0,0.10)),
-    url(${bgImage});
-  background-size: cover;
-  background-position: center 18%;
-  background-repeat: no-repeat;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.28);
-}
+          position: relative;
+          overflow: hidden;
+          min-height: 220px;
+          border-radius: 30px;
+          padding: 34px;
+          display: flex;
+          align-items: center;
+          border: 1px solid rgba(255,255,255,0.10);
+          background:
+            radial-gradient(circle at top right, rgba(214,180,105,0.10), transparent 26%),
+            linear-gradient(135deg, #08090b 0%, #131418 48%, #090a0c 100%);
+          box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+        }
 
         .clients-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at top left, rgba(255,255,255,0.08), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(214,180,105,0.12), transparent 28%);
-  pointer-events: none;
-}
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at top left, rgba(255,255,255,0.06), transparent 28%),
+            radial-gradient(circle at bottom right, rgba(214,180,105,0.12), transparent 30%);
+          pointer-events: none;
+        }
+
         .hero-content {
-  position: relative;
-  z-index: 1;
-  max-width: 760px;
-}
+          position: relative;
+          z-index: 1;
+          max-width: 760px;
+        }
 
         .eyebrow {
           display: inline-flex;
@@ -323,22 +398,22 @@ export default function Clientes({ usuario }) {
         }
 
         .clients-hero h1 {
-  margin: 0 0 14px;
-  font-size: clamp(38px, 4.3vw, 54px);
-  line-height: 1.05;
-  letter-spacing: -1px;
-  color: #ffffff;
-  font-weight: 900;
-  max-width: 760px;
-}
+          margin: 0 0 14px;
+          font-size: clamp(38px, 4.3vw, 54px);
+          line-height: 1.05;
+          letter-spacing: -1px;
+          color: #ffffff;
+          font-weight: 900;
+          max-width: 760px;
+        }
 
         .clients-hero p {
-  margin: 0;
-  max-width: 720px;
-  color: rgba(255,255,255,0.88);
-  font-size: 16px;
-  line-height: 1.8;
-}
+          margin: 0;
+          max-width: 720px;
+          color: rgba(255,255,255,0.88);
+          font-size: 16px;
+          line-height: 1.8;
+        }
 
         .stats-grid {
           display: grid;
@@ -402,10 +477,15 @@ export default function Clientes({ usuario }) {
           line-height: 1.7;
         }
 
-        .form-grid {
+        .form-grid,
+        .filters-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 14px;
+        }
+
+        .filters-grid {
+          margin-top: 16px;
         }
 
         .field {
@@ -421,7 +501,8 @@ export default function Clientes({ usuario }) {
         }
 
         .premium-input,
-        .premium-textarea {
+        .premium-textarea,
+        .premium-select {
           width: 100%;
           border-radius: 16px;
           border: 1px solid rgba(255,255,255,0.12);
@@ -433,8 +514,14 @@ export default function Clientes({ usuario }) {
           transition: all 0.25s ease;
         }
 
-        .premium-input {
+        .premium-input,
+        .premium-select {
           min-height: 54px;
+        }
+
+        .premium-select option {
+          background: #111214;
+          color: white;
         }
 
         .premium-textarea {
@@ -444,7 +531,8 @@ export default function Clientes({ usuario }) {
         }
 
         .premium-input:focus,
-        .premium-textarea:focus {
+        .premium-textarea:focus,
+        .premium-select:focus {
           border-color: rgba(214,180,105,0.85);
           box-shadow: 0 0 0 4px rgba(214,180,105,0.10);
         }
@@ -496,6 +584,14 @@ export default function Clientes({ usuario }) {
           transform: translateY(-2px);
         }
 
+        .btn-dark:disabled,
+        .btn-gold:disabled,
+        .btn-danger:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+          transform: none;
+        }
+
         .search-row {
           display: flex;
           align-items: end;
@@ -510,6 +606,7 @@ export default function Clientes({ usuario }) {
           margin-top: 14px;
           color: rgba(255,255,255,0.62);
           font-size: 14px;
+          line-height: 1.6;
         }
 
         .error-box,
@@ -568,29 +665,6 @@ export default function Clientes({ usuario }) {
           vertical-align: middle;
         }
 
-        .client-main {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-
-        .client-avatar {
-          width: 54px;
-          height: 54px;
-          border-radius: 18px;
-          background:
-            radial-gradient(circle at top right, rgba(214,180,105,0.28), transparent 35%),
-            rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.10);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #d6b469;
-          font-weight: 900;
-          font-size: 18px;
-          flex: 0 0 auto;
-        }
-
         .client-name {
           font-weight: 900;
           margin-bottom: 5px;
@@ -632,9 +706,25 @@ export default function Clientes({ usuario }) {
           border-color: rgba(59,130,246,0.25);
         }
 
+        .status-inactive {
+          background: rgba(148,163,184,0.13);
+          color: #cbd5e1;
+          border-color: rgba(148,163,184,0.25);
+        }
+
         .row-actions {
           display: flex;
           gap: 10px;
+        }
+
+        .pagination-row {
+          margin-top: 22px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          color: rgba(255,255,255,0.72);
+          font-weight: 700;
         }
 
         .empty-box {
@@ -663,7 +753,7 @@ export default function Clientes({ usuario }) {
           }
 
           .clients-hero {
-            min-height: 280px;
+            min-height: 240px;
             padding: 22px;
           }
 
@@ -672,12 +762,14 @@ export default function Clientes({ usuario }) {
           }
 
           .stats-grid,
-          .form-grid {
+          .form-grid,
+          .filters-grid {
             grid-template-columns: 1fr;
           }
 
           .search-row,
-          .row-actions {
+          .row-actions,
+          .pagination-row {
             flex-direction: column;
             align-items: stretch;
           }
@@ -695,8 +787,8 @@ export default function Clientes({ usuario }) {
               <div className="eyebrow">Clientes premium</div>
               <h1>Clientes, historial de compras y fidelización.</h1>
               <p>
-                Administra compradores, contacto, dirección y su comportamiento de compra
-                para que las ventas y facturas tengan información completa.
+                Administra compradores, contacto, dirección y comportamiento de compra.
+                Los filtros permiten manejar muchos registros sin saturar la tabla.
               </p>
             </div>
           </section>
@@ -705,19 +797,19 @@ export default function Clientes({ usuario }) {
             <div className="stat-card">
               <div className="stat-label">Total clientes</div>
               <div className="stat-value">{stats.total}</div>
-              <div className="stat-accent">Base de clientes</div>
+              <div className="stat-accent">Base completa</div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-label">Activos</div>
+              <div className="stat-value">{stats.activos}</div>
+              <div className="stat-accent">Disponibles para venta</div>
             </div>
 
             <div className="stat-card">
               <div className="stat-label">Con compras</div>
               <div className="stat-value">{stats.conCompras}</div>
-              <div className="stat-accent">Clientes activos</div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-label">Clientes VIP</div>
-              <div className="stat-value">{stats.clientesVip}</div>
-              <div className="stat-accent">RD$5,000 o más</div>
+              <div className="stat-accent">Historial registrado</div>
             </div>
 
             <div className="stat-card">
@@ -801,7 +893,7 @@ export default function Clientes({ usuario }) {
             <div className="glass-card">
               <h2 className="card-title">Explorar clientes</h2>
               <p className="card-subtitle">
-                Busca por nombre, teléfono, email o dirección.
+                Busca, filtra y ordena clientes para manejar grandes volúmenes de información.
               </p>
 
               <div className="search-row">
@@ -809,19 +901,63 @@ export default function Clientes({ usuario }) {
                   <label>Búsqueda</label>
                   <input
                     className="premium-input"
-                    placeholder="Buscar cliente..."
+                    placeholder="Buscar por nombre, email, teléfono o dirección..."
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
                   />
                 </div>
 
-                <button className="btn-dark" onClick={() => setBusqueda('')}>
+                <button className="btn-dark" onClick={limpiarFiltros}>
                   Limpiar
                 </button>
               </div>
 
+              <div className="filters-grid">
+                <div className="field">
+                  <label>Estado</label>
+                  <select
+                    className="premium-select"
+                    value={estadoFiltro}
+                    onChange={(e) => setEstadoFiltro(e.target.value)}
+                  >
+                    <option value="todos">Todos</option>
+                    <option value="activos">Activos</option>
+                    <option value="inactivos">Inactivos</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label>Compras</label>
+                  <select
+                    className="premium-select"
+                    value={comprasFiltro}
+                    onChange={(e) => setComprasFiltro(e.target.value)}
+                  >
+                    <option value="todos">Todos</option>
+                    <option value="con-compras">Con compras</option>
+                    <option value="sin-compras">Sin compras</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label>Ordenar por</label>
+                  <select
+                    className="premium-select"
+                    value={ordenCliente}
+                    onChange={(e) => setOrdenCliente(e.target.value)}
+                  >
+                    <option value="recientes">Más recientes</option>
+                    <option value="nombre">Nombre A-Z</option>
+                    <option value="compras-mayor">Más compras</option>
+                    <option value="total-mayor">Mayor gasto</option>
+                    <option value="total-menor">Menor gasto</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="search-meta">
-                Mostrando {clientesFiltrados.length} de {clientes.length} clientes.
+                Mostrando {clientesPaginados.length} de {clientesFiltrados.length} clientes filtrados.
+                Total registrados: {clientes.length}.
               </div>
 
               {!esAdmin && error && <div className="error-box">{error}</div>}
@@ -831,7 +967,7 @@ export default function Clientes({ usuario }) {
 
           {clientesFiltrados.length === 0 ? (
             <div className="empty-box">
-              No hay clientes para mostrar.
+              No hay clientes para mostrar con los filtros seleccionados.
             </div>
           ) : (
             <section className="glass-card clients-table-card">
@@ -851,21 +987,14 @@ export default function Clientes({ usuario }) {
                   </thead>
 
                   <tbody>
-                    {clientesFiltrados.map((cliente) => {
+                    {clientesPaginados.map((cliente) => {
                       const estado = getClienteEstado(cliente);
-                      const inicial = String(cliente.nombre || '?').trim().charAt(0).toUpperCase();
 
                       return (
                         <tr key={cliente.id_cliente}>
                           <td>
-                            <div className="client-main">
-                              <div className="client-avatar">{inicial}</div>
-
-                              <div>
-                                <div className="client-name">{cliente.nombre}</div>
-                                <div className="client-sub">ID #{cliente.id_cliente}</div>
-                              </div>
-                            </div>
+                            <div className="client-name">{cliente.nombre}</div>
+                            <div className="client-sub">ID #{cliente.id_cliente}</div>
                           </td>
 
                           <td>
@@ -894,27 +1023,27 @@ export default function Clientes({ usuario }) {
                           </td>
 
                           {esAdmin && (
-  <td>
-    <div className="row-actions">
-      <button className="btn-gold" onClick={() => editar(cliente)}>
-        Editar
-      </button>
+                            <td>
+                              <div className="row-actions">
+                                <button className="btn-gold" onClick={() => editar(cliente)}>
+                                  Editar
+                                </button>
 
-      {Number(cliente.compras) > 0 ? (
-        <button
-          className={cliente.estado === 'inactivo' ? 'btn-gold' : 'btn-dark'}
-          onClick={() => cambiarEstadoCliente(cliente)}
-        >
-          {cliente.estado === 'inactivo' ? 'Activar' : 'Desactivar'}
-        </button>
-      ) : (
-        <button className="btn-danger" onClick={() => eliminar(cliente)}>
-          Eliminar
-        </button>
-      )}
-    </div>
-  </td>
-)}
+                                {Number(cliente.compras) > 0 ? (
+                                  <button
+                                    className={cliente.estado === 'inactivo' ? 'btn-gold' : 'btn-dark'}
+                                    onClick={() => cambiarEstadoCliente(cliente)}
+                                  >
+                                    {cliente.estado === 'inactivo' ? 'Activar' : 'Desactivar'}
+                                  </button>
+                                ) : (
+                                  <button className="btn-danger" onClick={() => eliminar(cliente)}>
+                                    Eliminar
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -922,6 +1051,30 @@ export default function Clientes({ usuario }) {
                 </table>
               </div>
             </section>
+          )}
+
+          {clientesFiltrados.length > clientesPorPagina && (
+            <div className="pagination-row">
+              <button
+                className="btn-dark"
+                onClick={() => setPaginaClientes((prev) => Math.max(1, prev - 1))}
+                disabled={paginaClientes === 1}
+              >
+                Anterior
+              </button>
+
+              <span>
+                Página {paginaClientes} de {totalPaginasClientes}
+              </span>
+
+              <button
+                className="btn-dark"
+                onClick={() => setPaginaClientes((prev) => Math.min(totalPaginasClientes, prev + 1))}
+                disabled={paginaClientes === totalPaginasClientes}
+              >
+                Siguiente
+              </button>
+            </div>
           )}
         </div>
       </div>
