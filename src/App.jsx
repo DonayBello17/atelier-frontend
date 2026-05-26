@@ -111,6 +111,58 @@ function GlobalStyles() {
       .clientes-page .client-cell {
         grid-template-columns: 1fr auto !important;
       }
+
+            .products-loading,
+      .clients-loading,
+      .sales-loading,
+      .inventory-loading,
+      .sizes-loading,
+      .tallas-loading {
+        min-height: 100vh !important;
+        background:
+          radial-gradient(circle at top right, rgba(214,180,105,0.13), transparent 28%),
+          linear-gradient(135deg, #08090b 0%, #121318 52%, #07080a 100%) !important;
+        color: transparent !important;
+        font-size: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: relative !important;
+      }
+
+      .products-loading::before,
+      .clients-loading::before,
+      .sales-loading::before,
+      .inventory-loading::before,
+      .sizes-loading::before,
+      .tallas-loading::before {
+        content: "ATELIER";
+        color: #f2eee7;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: clamp(38px, 6vw, 72px);
+        letter-spacing: 10px;
+        font-weight: 500;
+        display: block;
+        text-align: center;
+      }
+
+      .products-loading::after,
+      .clients-loading::after,
+      .sales-loading::after,
+      .inventory-loading::after,
+      .sizes-loading::after,
+      .tallas-loading::after {
+        content: "Cargando sistema de ventas, catálogo e inventario...";
+        position: absolute;
+        top: calc(50% + 62px);
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255,255,255,0.68);
+        font-size: 14px;
+        letter-spacing: 1px;
+        text-align: center;
+        width: min(90%, 520px);
+      }
     `}</style>
   );
 }
