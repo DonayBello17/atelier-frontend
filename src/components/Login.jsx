@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import api from '../api/api';
-import bgImage from '../assets/nueva-foto-login.png';
+import bgImage from '../assets/login-nosotros.png';
 
 export default function Login({ onLogin, onBackCatalogo }) {
   const [modo, setModo] = useState('login');
