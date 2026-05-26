@@ -31,7 +31,13 @@ export default function Ventas({ usuario }) {
     { id_inventario: '', cantidad: 1, precio_unitario: '' },
   ]);
   const [busqueda, setBusqueda] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('todos');
+  const [fechaFiltro, setFechaFiltro] = useState('todas');
+  const [ordenVenta, setOrdenVenta] = useState('recientes');
+  const [paginaVentas, setPaginaVentas] = useState(1);
   const [error, setError] = useState('');
+
+  const ventasPorPagina = 10;
   const [guardando, setGuardando] = useState(false);
 
   const esAdmin = usuario?.rol === 'admin';
@@ -92,11 +98,96 @@ const ventasBase = useMemo(() => {
   }, []);
 
   const ventasFiltradas = useMemo(() => {
-  return ventasBase.filter((venta) => {
-    const texto = `${venta.id_venta || ''} ${venta.cliente || ''}`.toLowerCase();
-    return texto.includes(busqueda.toLowerCase());
-  });
-}, [ventasBase, busqueda]);
+    const textoBusqueda = busqueda.toLowerCase().trim();
+
+    const resultado = ventasBase.filter((venta) => {
+      const texto = `
+        ${venta.id_venta || ''}
+        ${venta.cliente || ''}
+        ${venta.email || ''}
+        ${venta.telefono || ''}
+        ${venta.estado || ''}
+      `.toLowerCase();
+
+      const coincideBusqueda = texto.includes(textoBusqueda);
+
+      const estadoVenta = venta.estado === 'anulada' ? 'anulada' : 'activa';
+
+      const coincideEstado =
+        estadoFiltro === 'todos' ||
+        estadoFiltro === estadoVenta;
+
+      let coincideFecha = true;
+
+      if (fechaFiltro !== 'todas' && venta.fecha) {
+        const fechaVenta = new Date(venta.fecha);
+        const hoy = new Date();
+
+        const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+        const inicioVenta = new Date(fechaVenta.getFullYear(), fechaVenta.getMonth(), fechaVenta.getDate());
+
+        const diferenciaDias = Math.floor((inicioHoy - inicioVenta) / (1000 * 60 * 60 * 24));
+
+        if (fechaFiltro === 'hoy') {
+          coincideFecha = diferenciaDias === 0;
+        }
+
+        if (fechaFiltro === 'semana') {
+          coincideFecha = diferenciaDias >= 0 && diferenciaDias <= 7;
+        }
+
+        if (fechaFiltro === 'mes') {
+          coincideFecha =
+            fechaVenta.getFullYear() === hoy.getFullYear() &&
+            fechaVenta.getMonth() === hoy.getMonth();
+        }
+      }
+
+      return coincideBusqueda && coincideEstado && coincideFecha;
+    });
+
+    return [...resultado].sort((a, b) => {
+      if (ordenVenta === 'total-mayor') {
+        return (Number(b.total) || 0) - (Number(a.total) || 0);
+      }
+
+      if (ordenVenta === 'total-menor') {
+        return (Number(a.total) || 0) - (Number(b.total) || 0);
+      }
+
+      if (ordenVenta === 'cliente') {
+        return String(a.cliente || '').localeCompare(String(b.cliente || ''));
+      }
+
+      if (ordenVenta === 'antiguas') {
+        return new Date(a.fecha || 0) - new Date(b.fecha || 0);
+      }
+
+      return new Date(b.fecha || 0) - new Date(a.fecha || 0);
+    });
+  }, [ventasBase, busqueda, estadoFiltro, fechaFiltro, ordenVenta]);
+
+  const totalPaginasVentas = Math.max(
+    1,
+    Math.ceil(ventasFiltradas.length / ventasPorPagina)
+  );
+
+  useEffect(() => {
+    setPaginaVentas(1);
+  }, [busqueda, estadoFiltro, fechaFiltro, ordenVenta]);
+
+  useEffect(() => {
+    if (paginaVentas > totalPaginasVentas) {
+      setPaginaVentas(totalPaginasVentas);
+    }
+  }, [paginaVentas, totalPaginasVentas]);
+
+  const ventasPaginadas = useMemo(() => {
+    const inicio = (paginaVentas - 1) * ventasPorPagina;
+    const fin = inicio + ventasPorPagina;
+
+    return ventasFiltradas.slice(inicio, fin);
+  }, [ventasFiltradas, paginaVentas, ventasPorPagina]);
 
   const totalFormulario = useMemo(() => {
     return items.reduce((acc, item) => {
@@ -792,6 +883,29 @@ const stats = useMemo(() => {
           flex: 1;
         }
 
+        .filters-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+          margin-top: 16px;
+        }
+
+        .pagination-row {
+          margin-top: 22px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          color: rgba(255,255,255,0.72);
+          font-weight: 700;
+        }
+
+        .pagination-row button:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+          transform: none;
+        }
+
         .search-meta {
           margin-top: 14px;
           color: rgba(255,255,255,0.62);
@@ -1027,6 +1141,10 @@ const stats = useMemo(() => {
             grid-template-columns: 1fr;
           }
 
+          .filters-grid {
+            grid-template-columns: 1fr;
+          }
+
           .search-row,
           .actions-row {
             flex-direction: column;
@@ -1237,10 +1355,15 @@ const stats = useMemo(() => {
             )}
 
             <div className="glass-card">
-              <h2 className="card-title">Explorar ventas</h2>
-              <p className="card-subtitle">
-                Busca por cliente o número de venta.
-              </p>
+              <h2 className="card-title">
+  {esCliente ? 'Mis compras' : 'Explorar ventas'}
+</h2>
+
+<p className="card-subtitle">
+  {esCliente
+    ? 'Revisa tu historial de compras y abre la factura de cada venta.'
+    : 'Busca por cliente o número de venta.'}
+</p>
 
               <div className="search-row">
                 <div className="field">
@@ -1258,8 +1381,53 @@ const stats = useMemo(() => {
                 </button>
               </div>
 
+              <div className="filters-grid">
+                <div className="field">
+                  <label>Estado</label>
+                  <select
+                    className="premium-select"
+                    value={estadoFiltro}
+                    onChange={(e) => setEstadoFiltro(e.target.value)}
+                  >
+                    <option value="todos">Todas</option>
+                    <option value="activa">Activas</option>
+                    <option value="anulada">Anuladas</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label>Fecha</label>
+                  <select
+                    className="premium-select"
+                    value={fechaFiltro}
+                    onChange={(e) => setFechaFiltro(e.target.value)}
+                  >
+                    <option value="todas">Todas</option>
+                    <option value="hoy">Hoy</option>
+                    <option value="semana">Últimos 7 días</option>
+                    <option value="mes">Este mes</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label>Ordenar por</label>
+                  <select
+                    className="premium-select"
+                    value={ordenVenta}
+                    onChange={(e) => setOrdenVenta(e.target.value)}
+                  >
+                    <option value="recientes">Más recientes</option>
+                    <option value="antiguas">Más antiguas</option>
+                    <option value="cliente">Cliente A-Z</option>
+                    <option value="total-mayor">Total mayor</option>
+                    <option value="total-menor">Total menor</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="search-meta">
-                Mostrando {ventasFiltradas.length} de {ventas.length} ventas.
+                Mostrando {ventasPaginadas.length} de {ventasFiltradas.length} ventas filtradas.
+                Total historial: {ventasBase.length}.
               </div>
 
               {!mostrarForm && error && <div className="error-box">{error}</div>}
@@ -1268,7 +1436,7 @@ const stats = useMemo(() => {
 
           {ventasFiltradas.length === 0 ? (
             <div className="empty-box">
-              No hay ventas registradas.
+             {esCliente ? 'Todavía no tienes compras registradas.' : 'No hay ventas registradas.'}
             </div>
           ) : (
             <section className="glass-card sales-table-card">
@@ -1287,7 +1455,7 @@ const stats = useMemo(() => {
                   </thead>
 
                   <tbody>
-                    {ventasFiltradas.map((venta) => (
+                    {ventasPaginadas.map((venta) => (
                       <tr key={venta.id_venta}>
                         <td>
                           <span className="sale-id">#{venta.id_venta}</span>
@@ -1352,6 +1520,30 @@ const stats = useMemo(() => {
                 </table>
               </div>
             </section>
+          )}
+
+          {ventasFiltradas.length > ventasPorPagina && (
+            <div className="pagination-row">
+              <button
+                className="btn-dark"
+                onClick={() => setPaginaVentas((prev) => Math.max(1, prev - 1))}
+                disabled={paginaVentas === 1}
+              >
+                Anterior
+              </button>
+
+              <span>
+                Página {paginaVentas} de {totalPaginasVentas}
+              </span>
+
+              <button
+                className="btn-dark"
+                onClick={() => setPaginaVentas((prev) => Math.min(totalPaginasVentas, prev + 1))}
+                disabled={paginaVentas === totalPaginasVentas}
+              >
+                Siguiente
+              </button>
+            </div>
           )}
 
           {detalle && (
