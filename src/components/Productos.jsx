@@ -26,6 +26,10 @@ const getImagenProducto = (producto) => {
   const nombre = String(producto.nombre || producto.producto || '')
     .toLowerCase()
     .trim();
+    
+  if (nombre.includes('buzo algodon') || nombre.includes('buzo algodón')) {
+    return '/productos/buzo-algodon.jpg';
+  }
 
   if (nombre.includes('conjunto tiro')) {
     return '/productos/conjunto-tiro-25.jpg.avif';
