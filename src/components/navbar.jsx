@@ -20,14 +20,14 @@ export default function Navbar({
 
     empleado: [
       { key: 'productos', label: 'Productos' },
-      { key: 'inventario', label: 'Inventario' },
+      
       { key: 'ventas', label: 'Ventas' },
     ],
 
     admin: [
       { key: 'productos', label: 'Productos' },
       { key: 'clientes', label: 'Clientes' },
-      { key: 'inventario', label: 'Inventario' },
+      
       { key: 'ventas', label: 'Ventas' },
       { key: 'tallas', label: 'Tallas' },
     ],

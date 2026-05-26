@@ -67,11 +67,15 @@ export default function Productos({ usuario, onRequireLogin }) {
 
   const [productos, setProductos] = useState([]);
   const [inventario, setInventario] = useState([]);
+  const [tallas, setTallas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
+  const [busquedaInventario, setBusquedaInventario] = useState('');
   const [error, setError] = useState('');
+  const [errorInventario, setErrorInventario] = useState('');
   const [editando, setEditando] = useState(null);
+  const [editandoInventario, setEditandoInventario] = useState(null);
   const [preview, setPreview] = useState('');
 
   const [form, setForm] = useState({
@@ -81,6 +85,13 @@ export default function Productos({ usuario, onRequireLogin }) {
     id_categoria: '',
     imagen_url: '',
     foto: null,
+  });
+
+  const [formInventario, setFormInventario] = useState({
+    id_producto: '',
+    id_talla: '',
+    color: '',
+    stock: '',
   });
 
   const [carrito, setCarrito] = useState([]);
@@ -93,27 +104,33 @@ export default function Productos({ usuario, onRequireLogin }) {
   const [mensaje, setMensaje] = useState('');
   const [confirmarCompra, setConfirmarCompra] = useState(false);
 
-  const esAdmin = usuario?.rol === 'admin';
-  const esVistaTienda = !usuario || usuario?.rol === 'cliente';
+  const rolUsuario = String(usuario?.rol || '').toLowerCase().trim();
+  const esAdmin = rolUsuario === 'admin';
+  const esEmpleado = rolUsuario === 'empleado';
+  const esCliente = rolUsuario === 'cliente';
+  const esVistaTienda = !usuario || esCliente;
+  const puedeGestionarInventario = esAdmin || esEmpleado;
 
   const puedeVender =
     !!usuario &&
-    ['admin', 'empleado', 'cliente'].includes(usuario?.rol);
+    ['admin', 'empleado', 'cliente'].includes(rolUsuario);
 
   const cargar = async () => {
     try {
       setLoading(true);
       setError('');
 
-      const [productosRes, inventarioRes, clientesRes] = await Promise.all([
+      const [productosRes, inventarioRes, clientesRes, tallasRes] = await Promise.all([
         api.get('/productos'),
         api.get('/inventario'),
         api.get('/clientes'),
+        api.get('/tallas'),
       ]);
 
       setProductos(productosRes.data.data || []);
       setInventario(inventarioRes.data.data || []);
       setClientes(clientesRes.data.data || []);
+      setTallas(tallasRes.data.data || []);
     } catch (err) {
       setError('No se pudieron cargar los productos');
     } finally {
@@ -132,6 +149,13 @@ export default function Productos({ usuario, onRequireLogin }) {
     });
   }, [productos, busqueda]);
 
+  const inventarioFiltrado = useMemo(() => {
+    return inventario.filter((item) => {
+      const texto = `${item.producto || ''} ${item.marca || ''} ${item.talla || ''} ${item.color || ''}`.toLowerCase();
+      return texto.includes(busquedaInventario.toLowerCase());
+    });
+  }, [inventario, busquedaInventario]);
+
   const stats = useMemo(() => {
     const total = productos.length;
     const caballeros = productos.filter((p) => String(p.id_categoria) === '1').length;
@@ -148,6 +172,20 @@ export default function Productos({ usuario, onRequireLogin }) {
       valorTotal,
     };
   }, [productos]);
+
+  const statsInventario = useMemo(() => {
+    const totalUnidades = inventario.reduce((acc, item) => acc + (Number(item.stock) || 0), 0);
+    const agotados = inventario.filter((item) => Number(item.stock) <= 0).length;
+    const bajoStock = inventario.filter((item) => Number(item.stock) > 0 && Number(item.stock) <= 5).length;
+    const disponibles = inventario.filter((item) => Number(item.stock) > 5).length;
+
+    return {
+      totalUnidades,
+      agotados,
+      bajoStock,
+      disponibles,
+    };
+  }, [inventario]);
 
   const carritoTotal = useMemo(() => {
     return carrito.reduce((acc, item) => {
@@ -201,6 +239,92 @@ export default function Productos({ usuario, onRequireLogin }) {
       colores: colores.length ? colores.join(', ') : 'Sin color definido',
       totalStock,
     };
+  };
+
+  const estadoStock = (stock) => {
+    const valor = Number(stock) || 0;
+
+    if (valor <= 0) {
+      return { label: 'Agotado', className: 'status-danger' };
+    }
+
+    if (valor <= 5) {
+      return { label: 'Stock bajo', className: 'status-warning' };
+    }
+
+    return { label: 'Disponible', className: 'status-success' };
+  };
+
+  const limpiarFormInventario = () => {
+    setFormInventario({
+      id_producto: '',
+      id_talla: '',
+      color: '',
+      stock: '',
+    });
+    setEditandoInventario(null);
+    setErrorInventario('');
+  };
+
+  const guardarInventario = async () => {
+    if (!puedeGestionarInventario) {
+      setErrorInventario('No tienes permisos para gestionar inventario');
+      return;
+    }
+
+    if (!formInventario.id_producto || !formInventario.id_talla || formInventario.stock === '') {
+      setErrorInventario('Selecciona producto, talla y stock');
+      return;
+    }
+
+    try {
+      setErrorInventario('');
+
+      const payload = {
+        id_producto: formInventario.id_producto,
+        id_talla: formInventario.id_talla,
+        color: formInventario.color,
+        stock: formInventario.stock,
+      };
+
+      if (editandoInventario) {
+        await api.put(`/inventario/${editandoInventario}`, payload);
+      } else {
+        await api.post('/inventario', payload);
+      }
+
+      limpiarFormInventario();
+      await cargar();
+    } catch (err) {
+      setErrorInventario(err.response?.data?.message || 'No se pudo guardar el inventario');
+    }
+  };
+
+  const editarInventario = (item) => {
+    setEditandoInventario(item.id_inventario);
+    setFormInventario({
+      id_producto: item.id_producto || '',
+      id_talla: item.id_talla || '',
+      color: item.color || '',
+      stock: item.stock ?? '',
+    });
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
+
+  const eliminarInventario = async (id) => {
+    if (!confirm('¿Eliminar este registro de inventario?')) return;
+
+    try {
+      setErrorInventario('');
+      await api.delete(`/inventario/${id}`);
+      await cargar();
+    } catch (err) {
+      setErrorInventario(err.response?.data?.message || 'No se pudo eliminar el registro');
+    }
   };
 
   const limpiarForm = () => {
@@ -433,13 +557,13 @@ export default function Productos({ usuario, onRequireLogin }) {
     });
 
     const clienteFinal =
-      usuario?.rol === 'cliente'
+      esCliente
         ? clienteSesion?.id_cliente
         : clienteCarrito;
 
     if (!clienteFinal) {
       setError(
-        usuario?.rol === 'cliente'
+        esCliente
           ? 'Tu cuenta de cliente no está enlazada con un registro de cliente. Verifica que exista un cliente con el mismo email o nombre.'
           : 'Selecciona un cliente para finalizar la venta'
       );
@@ -1118,8 +1242,130 @@ export default function Productos({ usuario, onRequireLogin }) {
           color: rgba(255,255,255,0.78);
         }
 
+        .inventory-integrated {
+          margin-top: 28px;
+        }
+
+        .inventory-section-title {
+          display: flex;
+          justify-content: space-between;
+          gap: 18px;
+          align-items: flex-end;
+          margin-bottom: 18px;
+        }
+
+        .inventory-section-title h2 {
+          margin: 0;
+          font-size: 28px;
+        }
+
+        .inventory-section-title p {
+          margin: 8px 0 0;
+          color: rgba(255,255,255,0.62);
+          line-height: 1.6;
+          font-size: 14px;
+        }
+
+        .inventory-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 18px;
+          margin-bottom: 18px;
+        }
+
+        .inventory-table-card {
+          margin-top: 18px;
+          overflow: hidden;
+        }
+
+        .table-wrapper {
+          width: 100%;
+          overflow-x: auto;
+        }
+
+        .inventory-table {
+          width: 100%;
+          border-collapse: collapse;
+          min-width: 900px;
+        }
+
+        .inventory-table thead {
+          background: rgba(255,255,255,0.045);
+        }
+
+        .inventory-table th {
+          text-align: left;
+          padding: 18px;
+          color: rgba(255,255,255,0.64);
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 1.4px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .inventory-table td {
+          padding: 18px;
+          border-bottom: 1px solid rgba(255,255,255,0.07);
+          vertical-align: middle;
+        }
+
+        .inventory-product-name {
+          font-weight: 900;
+          margin-bottom: 5px;
+        }
+
+        .inventory-product-brand {
+          color: #d6b469;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 1.4px;
+        }
+
+        .pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 800;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(255,255,255,0.05);
+          color: rgba(255,255,255,0.86);
+        }
+
+        .stock-number {
+          font-weight: 900;
+          font-size: 18px;
+        }
+
+        .status-success {
+          background: rgba(34,197,94,0.13);
+          color: #86efac;
+          border-color: rgba(34,197,94,0.25);
+        }
+
+        .status-warning {
+          background: rgba(245,158,11,0.13);
+          color: #fcd34d;
+          border-color: rgba(245,158,11,0.25);
+        }
+
+        .status-danger {
+          background: rgba(220,38,38,0.13);
+          color: #fca5a5;
+          border-color: rgba(220,38,38,0.25);
+        }
+
+        .row-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
         @media (max-width: 1200px) {
-          .stats-grid {
+          .stats-grid,
+          .inventory-stats-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
@@ -1154,6 +1400,7 @@ export default function Productos({ usuario, onRequireLogin }) {
           }
 
           .stats-grid,
+          .inventory-stats-grid,
           .form-grid {
             grid-template-columns: 1fr;
           }
@@ -1507,6 +1754,226 @@ export default function Productos({ usuario, onRequireLogin }) {
             </section>
           )}
 
+          {!esVistaTienda && puedeGestionarInventario && (
+            <section className="inventory-integrated">
+              <div className="inventory-section-title">
+                <div>
+                  <h2>Inventario del catálogo</h2>
+                  <p>
+                    Gestiona las tallas, colores y cantidades desde el mismo módulo de productos.
+                  </p>
+                </div>
+              </div>
+
+              <div className="inventory-stats-grid">
+                <div className="stat-card">
+                  <div className="stat-label">Total unidades</div>
+                  <div className="stat-value">{statsInventario.totalUnidades}</div>
+                  <div className="stat-accent">Stock acumulado</div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-label">Disponibles</div>
+                  <div className="stat-value">{statsInventario.disponibles}</div>
+                  <div className="stat-accent">Con stock saludable</div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-label">Stock bajo</div>
+                  <div className="stat-value">{statsInventario.bajoStock}</div>
+                  <div className="stat-accent">Requieren atención</div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-label">Agotados</div>
+                  <div className="stat-value">{statsInventario.agotados}</div>
+                  <div className="stat-accent">Sin unidades</div>
+                </div>
+              </div>
+
+              <section className="toolbar">
+                <div className="glass-card">
+                  <h2 className="card-title">
+                    {editandoInventario ? 'Editar inventario' : 'Agregar inventario'}
+                  </h2>
+
+                  <p className="card-subtitle">
+                    Relaciona un producto con talla, color y stock disponible.
+                  </p>
+
+                  <div className="form-grid">
+                    <div className="field">
+                      <label>Producto</label>
+                      <select
+                        className="premium-select"
+                        value={formInventario.id_producto}
+                        onChange={(e) => setFormInventario({ ...formInventario, id_producto: e.target.value })}
+                      >
+                        <option value="">Selecciona un producto</option>
+                        {productos.map((p) => (
+                          <option key={p.id_producto} value={p.id_producto}>
+                            {p.nombre} {p.marca ? `- ${p.marca}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label>Talla</label>
+                      <select
+                        className="premium-select"
+                        value={formInventario.id_talla}
+                        onChange={(e) => setFormInventario({ ...formInventario, id_talla: e.target.value })}
+                      >
+                        <option value="">Selecciona una talla</option>
+                        {tallas.map((t) => (
+                          <option key={t.id_talla} value={t.id_talla}>
+                            {t.nombre_talla || t.talla || t.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label>Color</label>
+                      <input
+                        className="premium-input"
+                        placeholder="Ej. Negro, Blanco, Beige"
+                        value={formInventario.color}
+                        onChange={(e) => setFormInventario({ ...formInventario, color: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label>Stock</label>
+                      <input
+                        className="premium-input"
+                        type="number"
+                        placeholder="Ej. 12"
+                        value={formInventario.stock}
+                        onChange={(e) => setFormInventario({ ...formInventario, stock: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="actions-row">
+                    <button className="btn-gold" onClick={guardarInventario}>
+                      {editandoInventario ? 'Guardar cambios' : 'Agregar inventario'}
+                    </button>
+
+                    {editandoInventario && (
+                      <button className="btn-dark" onClick={limpiarFormInventario}>
+                        Cancelar edición
+                      </button>
+                    )}
+                  </div>
+
+                  {errorInventario && <div className="error-box">{errorInventario}</div>}
+                </div>
+
+                <div className="glass-card">
+                  <h2 className="card-title">Explorar stock</h2>
+                  <p className="card-subtitle">
+                    Busca por producto, marca, talla o color.
+                  </p>
+
+                  <div className="search-row">
+                    <div className="field">
+                      <label>Búsqueda</label>
+                      <input
+                        className="premium-input"
+                        placeholder="Buscar inventario..."
+                        value={busquedaInventario}
+                        onChange={(e) => setBusquedaInventario(e.target.value)}
+                      />
+                    </div>
+
+                    <button className="btn-dark" onClick={() => setBusquedaInventario('')}>
+                      Limpiar
+                    </button>
+                  </div>
+
+                  <div className="search-meta">
+                    Mostrando {inventarioFiltrado.length} de {inventario.length} registros.
+                  </div>
+                </div>
+              </section>
+
+              {inventarioFiltrado.length === 0 ? (
+                <div className="empty-box">
+                  No hay registros de inventario para mostrar.
+                </div>
+              ) : (
+                <section className="glass-card inventory-table-card">
+                  <div className="table-wrapper">
+                    <table className="inventory-table">
+                      <thead>
+                        <tr>
+                          <th>Producto</th>
+                          <th>Talla</th>
+                          <th>Color</th>
+                          <th>Stock</th>
+                          <th>Estado</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {inventarioFiltrado.map((item) => {
+                          const estado = estadoStock(item.stock);
+                          const productoRelacionado = productos.find(
+                            (p) => String(p.id_producto) === String(item.id_producto)
+                          );
+
+                          return (
+                            <tr key={item.id_inventario}>
+                              <td>
+                                <div className="inventory-product-name">
+                                  {productoRelacionado?.nombre || item.producto}
+                                </div>
+                                <div className="inventory-product-brand">
+                                  {productoRelacionado?.marca || item.marca || 'ATELIER'}
+                                </div>
+                              </td>
+
+                              <td>
+                                <span className="pill">{item.talla}</span>
+                              </td>
+
+                              <td>{item.color || 'Sin color'}</td>
+
+                              <td>
+                                <span className="stock-number">{item.stock}</span> uds
+                              </td>
+
+                              <td>
+                                <span className={`pill ${estado.className}`}>
+                                  {estado.label}
+                                </span>
+                              </td>
+
+                              <td>
+                                <div className="row-actions">
+                                  <button className="btn-gold" onClick={() => editarInventario(item)}>
+                                    Editar
+                                  </button>
+
+                                  <button className="btn-danger" onClick={() => eliminarInventario(item.id_inventario)}>
+                                    Eliminar
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+            </section>
+          )}
+
           {esVistaTienda && (
             <footer className="atelier-footer">
               <div>
@@ -1605,7 +2072,7 @@ export default function Productos({ usuario, onRequireLogin }) {
                   </button>
                 </div>
 
-                {usuario?.rol !== 'cliente' && (
+                {!esCliente && (
                   <div className="field">
                     <label>Cliente</label>
                     <select
@@ -1625,7 +2092,7 @@ export default function Productos({ usuario, onRequireLogin }) {
                   </div>
                 )}
 
-                {usuario?.rol === 'cliente' && (
+                {esCliente && (
                   <div className="success-box">
                     Comprarás como {usuario?.nombre || usuario?.email}
                   </div>
