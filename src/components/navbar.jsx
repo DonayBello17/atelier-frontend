@@ -20,7 +20,7 @@ export default function Navbar({
 
     empleado: [
       { key: 'productos', label: 'Productos' },
-      
+      { key: 'clientes', label: 'Clientes' },
       { key: 'ventas', label: 'Ventas' },
     ],
 

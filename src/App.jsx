@@ -3,7 +3,7 @@ import Login from './components/Login';
 import Navbar from './components/navbar';
 import Productos from './components/Productos';
 import Clientes from './components/Clientes';
-import Inventario from './components/Inventario';
+
 import Ventas from './components/Ventas';
 import Tallas from './components/Tallas';
 
@@ -190,11 +190,11 @@ export default function App() {
     }
 
     if (rol === 'empleado') {
-      return ['productos', 'clientes', 'inventario', 'ventas'];
+      return ['productos', 'clientes', 'ventas'];
     }
 
     if (rol === 'admin') {
-      return ['productos', 'clientes', 'inventario', 'ventas', 'tallas'];
+      return ['productos', 'clientes','ventas', 'tallas'];
     }
 
     return ['productos'];
@@ -259,7 +259,7 @@ export default function App() {
   }
 
   if (vista === 'clientes') return <Clientes usuario={usuario} />;
-  if (vista === 'inventario') return <Inventario usuario={usuario} />;
+  
   if (vista === 'tallas') return <Tallas usuario={usuario} />;
 
   return (
