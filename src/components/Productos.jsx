@@ -71,6 +71,7 @@ export default function Productos({ usuario, onRequireLogin }) {
 
   const [productos, setProductos] = useState([]);
   const [inventario, setInventario] = useState([]);
+  const [tallas, setTallas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
@@ -97,6 +98,15 @@ export default function Productos({ usuario, onRequireLogin }) {
   const [mensaje, setMensaje] = useState('');
   const [confirmarCompra, setConfirmarCompra] = useState(false);
 
+  const [busquedaInventario, setBusquedaInventario] = useState('');
+  const [editandoInventario, setEditandoInventario] = useState(null);
+  const [formInventario, setFormInventario] = useState({
+    id_producto: '',
+    id_talla: '',
+    color: '',
+    stock: '',
+  });
+
   const esAdmin = usuario?.rol === 'admin';
   const esVistaTienda = !usuario || usuario?.rol === 'cliente';
 
@@ -104,42 +114,53 @@ export default function Productos({ usuario, onRequireLogin }) {
     !!usuario &&
     ['admin', 'empleado', 'cliente'].includes(usuario?.rol);
 
+  const puedeGestionarInventario =
+    !!usuario &&
+    ['admin', 'empleado'].includes(usuario?.rol);
+
   const cargar = async () => {
-  try {
-    setLoading(true);
-    setError('');
+    try {
+      setLoading(true);
+      setError('');
 
-    const [productosRes, inventarioRes, clientesRes] = await Promise.allSettled([
-      api.get('/productos'),
-      api.get('/inventario'),
-      api.get('/clientes'),
-    ]);
+      const [productosRes, inventarioRes, clientesRes, tallasRes] = await Promise.allSettled([
+        api.get('/productos'),
+        api.get('/inventario'),
+        api.get('/clientes'),
+        api.get('/tallas'),
+      ]);
 
-    if (productosRes.status === 'fulfilled') {
-      setProductos(productosRes.value.data.data || []);
-    } else {
-      setProductos([]);
-      setError('No se pudieron cargar los productos');
+      if (productosRes.status === 'fulfilled') {
+        setProductos(productosRes.value.data.data || []);
+      } else {
+        setProductos([]);
+        setError('No se pudieron cargar los productos');
+      }
+
+      if (inventarioRes.status === 'fulfilled') {
+        setInventario(inventarioRes.value.data.data || []);
+      } else {
+        setInventario([]);
+        setError('Los productos cargaron, pero el inventario tardó demasiado. Recarga la página.');
+      }
+
+      if (clientesRes.status === 'fulfilled') {
+        setClientes(clientesRes.value.data.data || []);
+      } else {
+        setClientes([]);
+      }
+
+      if (tallasRes.status === 'fulfilled') {
+        setTallas(tallasRes.value.data.data || []);
+      } else {
+        setTallas([]);
+      }
+    } catch (err) {
+      setError('No se pudo cargar el módulo de productos');
+    } finally {
+      setLoading(false);
     }
-
-    if (inventarioRes.status === 'fulfilled') {
-      setInventario(inventarioRes.value.data.data || []);
-    } else {
-      setInventario([]);
-      setError('Los productos cargaron, pero el inventario tardó demasiado. Recarga la página.');
-    }
-
-    if (clientesRes.status === 'fulfilled') {
-      setClientes(clientesRes.value.data.data || []);
-    } else {
-      setClientes([]);
-    }
-  } catch (err) {
-    setError('No se pudo cargar el módulo de productos');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     cargar();
@@ -168,6 +189,121 @@ export default function Productos({ usuario, onRequireLogin }) {
       valorTotal,
     };
   }, [productos]);
+
+
+  const inventarioFiltrado = useMemo(() => {
+    const textoBusqueda = busquedaInventario.toLowerCase().trim();
+
+    return inventario.filter((item) => {
+      const texto = `${item.producto || ''} ${item.marca || ''} ${item.talla || ''} ${item.color || ''}`.toLowerCase();
+      return texto.includes(textoBusqueda);
+    });
+  }, [inventario, busquedaInventario]);
+
+  const statsInventario = useMemo(() => {
+    const totalUnidades = inventario.reduce((acc, item) => acc + (Number(item.stock) || 0), 0);
+    const agotados = inventario.filter((item) => Number(item.stock) <= 0).length;
+    const bajoStock = inventario.filter((item) => Number(item.stock) > 0 && Number(item.stock) <= 5).length;
+    const disponibles = inventario.filter((item) => Number(item.stock) > 5).length;
+
+    return {
+      totalUnidades,
+      agotados,
+      bajoStock,
+      disponibles,
+    };
+  }, [inventario]);
+
+  const estadoStock = (stock) => {
+    const valor = Number(stock) || 0;
+
+    if (valor <= 0) {
+      return { label: 'Agotado', className: 'status-danger' };
+    }
+
+    if (valor <= 5) {
+      return { label: 'Stock bajo', className: 'status-warning' };
+    }
+
+    return { label: 'Disponible', className: 'status-success' };
+  };
+
+  const limpiarInventario = () => {
+    setEditandoInventario(null);
+    setFormInventario({
+      id_producto: '',
+      id_talla: '',
+      color: '',
+      stock: '',
+    });
+    setError('');
+  };
+
+  const guardarInventario = async () => {
+    if (!formInventario.id_producto || !formInventario.id_talla || formInventario.stock === '') {
+      setError('Selecciona producto, talla y stock');
+      return;
+    }
+
+    try {
+      setError('');
+      setMensaje('');
+
+      const payload = {
+        id_producto: formInventario.id_producto,
+        id_talla: formInventario.id_talla,
+        color: formInventario.color,
+        stock: formInventario.stock,
+      };
+
+      if (editandoInventario) {
+        await api.put(`/inventario/${editandoInventario}`, payload);
+        setMensaje('Inventario actualizado correctamente');
+      } else {
+        await api.post('/inventario', payload);
+        setMensaje('Inventario agregado correctamente');
+      }
+
+      limpiarInventario();
+      await cargar();
+    } catch (err) {
+      setError(err.response?.data?.message || 'No se pudo guardar el inventario');
+    }
+  };
+
+  const editarInventario = (item) => {
+    setEditandoInventario(item.id_inventario);
+    setFormInventario({
+      id_producto: item.id_producto || '',
+      id_talla: item.id_talla || '',
+      color: item.color || '',
+      stock: item.stock ?? '',
+    });
+    setError('');
+    setMensaje('');
+
+    setTimeout(() => {
+      document.querySelector('.inventory-integrated-section')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 80);
+  };
+
+  const eliminarInventario = async (id) => {
+    if (!confirm('¿Eliminar este registro de inventario?')) return;
+
+    try {
+      setError('');
+      setMensaje('');
+
+      await api.delete(`/inventario/${id}`);
+      setMensaje('Registro de inventario eliminado');
+      await cargar();
+    } catch (err) {
+      setError(err.response?.data?.message || 'No se pudo eliminar el registro de inventario');
+    }
+  };
 
   const carritoTotal = useMemo(() => {
     return carrito.reduce((acc, item) => {
@@ -976,6 +1112,109 @@ export default function Productos({ usuario, onRequireLogin }) {
           flex: 1;
         }
 
+        .inventory-integrated-section {
+          margin-top: 28px;
+        }
+
+        .inventory-title-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: flex-start;
+          margin-bottom: 18px;
+        }
+
+        .inventory-table-card {
+          margin-top: 20px;
+          overflow: hidden;
+        }
+
+        .table-wrapper {
+          width: 100%;
+          overflow-x: auto;
+        }
+
+        .inventory-table {
+          width: 100%;
+          border-collapse: collapse;
+          min-width: 940px;
+        }
+
+        .inventory-table thead {
+          background: rgba(255,255,255,0.045);
+        }
+
+        .inventory-table th {
+          text-align: left;
+          padding: 18px;
+          color: rgba(255,255,255,0.64);
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 1.4px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .inventory-table td {
+          padding: 18px;
+          border-bottom: 1px solid rgba(255,255,255,0.07);
+          vertical-align: middle;
+        }
+
+        .inventory-product-name {
+          font-weight: 900;
+          margin-bottom: 4px;
+        }
+
+        .inventory-product-brand {
+          color: #d6b469;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 800;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(255,255,255,0.05);
+          color: rgba(255,255,255,0.86);
+        }
+
+        .status-success {
+          color: #86efac;
+          border-color: rgba(34,197,94,0.28);
+          background: rgba(34,197,94,0.12);
+        }
+
+        .status-warning {
+          color: #facc15;
+          border-color: rgba(250,204,21,0.26);
+          background: rgba(250,204,21,0.10);
+        }
+
+        .status-danger {
+          color: #fca5a5;
+          border-color: rgba(220,38,38,0.28);
+          background: rgba(220,38,38,0.12);
+        }
+
+        .stock-number {
+          color: #f2eee7;
+          font-size: 20px;
+          font-weight: 900;
+        }
+
+        .row-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
         .empty-box {
           margin-top: 24px;
           padding: 34px;
@@ -1161,6 +1400,10 @@ export default function Productos({ usuario, onRequireLogin }) {
           .toolbar {
             grid-template-columns: 1fr;
           }
+
+          .inventory-stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
         }
 
         @media (max-width: 760px) {
@@ -1189,12 +1432,14 @@ export default function Productos({ usuario, onRequireLogin }) {
           }
 
           .stats-grid,
-          .form-grid {
+          .form-grid,
+          .inventory-stats-grid {
             grid-template-columns: 1fr;
           }
 
           .search-row,
-          .product-actions {
+          .product-actions,
+          .row-actions {
             flex-direction: column;
             align-items: stretch;
           }
@@ -1539,6 +1784,226 @@ export default function Productos({ usuario, onRequireLogin }) {
                   </article>
                 );
               })}
+            </section>
+          )}
+
+          {puedeGestionarInventario && !esVistaTienda && (
+            <section className="inventory-integrated-section">
+              <div className="inventory-title-row">
+                <div>
+                  <h2 className="card-title">Inventario integrado</h2>
+                  <p className="card-subtitle">
+                    Agrega tallas, colores y stock para los productos sin salir del módulo Productos.
+                  </p>
+                </div>
+              </div>
+
+              <section className="stats-grid">
+                <div className="stat-card">
+                  <div className="stat-label">Stock total</div>
+                  <div className="stat-value">{statsInventario.totalUnidades}</div>
+                  <div className="stat-accent">Unidades disponibles</div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-label">Disponibles</div>
+                  <div className="stat-value">{statsInventario.disponibles}</div>
+                  <div className="stat-accent">Registros saludables</div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-label">Stock bajo</div>
+                  <div className="stat-value">{statsInventario.bajoStock}</div>
+                  <div className="stat-accent">Requieren atención</div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-label">Agotados</div>
+                  <div className="stat-value">{statsInventario.agotados}</div>
+                  <div className="stat-accent">Sin unidades</div>
+                </div>
+              </section>
+
+              <section className="toolbar">
+                <div className="glass-card">
+                  <h2 className="card-title">
+                    {editandoInventario ? 'Editar inventario' : 'Agregar inventario'}
+                  </h2>
+
+                  <p className="card-subtitle">
+                    Relaciona un producto con su talla, color y cantidad disponible.
+                  </p>
+
+                  <div className="form-grid">
+                    <div className="field">
+                      <label>Producto</label>
+                      <select
+                        className="premium-select"
+                        value={formInventario.id_producto}
+                        onChange={(e) => setFormInventario({ ...formInventario, id_producto: e.target.value })}
+                      >
+                        <option value="">Selecciona un producto</option>
+                        {productos.map((p) => (
+                          <option key={p.id_producto} value={p.id_producto}>
+                            {p.nombre} {p.marca ? `- ${p.marca}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label>Talla</label>
+                      <select
+                        className="premium-select"
+                        value={formInventario.id_talla}
+                        onChange={(e) => setFormInventario({ ...formInventario, id_talla: e.target.value })}
+                      >
+                        <option value="">Selecciona una talla</option>
+                        {tallas.map((t) => (
+                          <option key={t.id_talla} value={t.id_talla}>
+                            {t.nombre_talla || t.talla || t.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label>Color</label>
+                      <input
+                        className="premium-input"
+                        placeholder="Ej. Negro, Blanco, Beige"
+                        value={formInventario.color}
+                        onChange={(e) => setFormInventario({ ...formInventario, color: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label>Stock</label>
+                      <input
+                        className="premium-input"
+                        type="number"
+                        placeholder="Ej. 12"
+                        value={formInventario.stock}
+                        onChange={(e) => setFormInventario({ ...formInventario, stock: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="actions-row">
+                    <button className="btn-gold" onClick={guardarInventario}>
+                      {editandoInventario ? 'Guardar cambios' : 'Agregar inventario'}
+                    </button>
+
+                    {editandoInventario && (
+                      <button className="btn-dark" onClick={limpiarInventario}>
+                        Cancelar edición
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="glass-card">
+                  <h2 className="card-title">Explorar stock</h2>
+                  <p className="card-subtitle">
+                    Busca por producto, marca, talla o color.
+                  </p>
+
+                  <div className="search-row">
+                    <div className="field">
+                      <label>Búsqueda</label>
+                      <input
+                        className="premium-input"
+                        placeholder="Buscar inventario..."
+                        value={busquedaInventario}
+                        onChange={(e) => setBusquedaInventario(e.target.value)}
+                      />
+                    </div>
+
+                    <button className="btn-dark" onClick={() => setBusquedaInventario('')}>
+                      Limpiar
+                    </button>
+                  </div>
+
+                  <div className="search-meta">
+                    Mostrando {inventarioFiltrado.length} de {inventario.length} registros.
+                  </div>
+                </div>
+              </section>
+
+              {inventarioFiltrado.length === 0 ? (
+                <div className="empty-box">
+                  No hay registros de inventario para mostrar.
+                </div>
+              ) : (
+                <section className="glass-card inventory-table-card">
+                  <div className="table-wrapper">
+                    <table className="inventory-table">
+                      <thead>
+                        <tr>
+                          <th>Producto</th>
+                          <th>Talla</th>
+                          <th>Color</th>
+                          <th>Stock</th>
+                          <th>Estado</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {inventarioFiltrado.map((item) => {
+                          const estado = estadoStock(item.stock);
+                          const productoRelacionado = productos.find(
+                            (p) => String(p.id_producto) === String(item.id_producto)
+                          );
+
+                          return (
+                            <tr key={item.id_inventario}>
+                              <td>
+                                <div>
+                                  <div className="inventory-product-name">
+                                    {productoRelacionado?.nombre || item.producto}
+                                  </div>
+                                  <div className="inventory-product-brand">
+                                    {productoRelacionado?.marca || item.marca || 'ATELIER'}
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td>
+                                <span className="pill">{item.talla}</span>
+                              </td>
+
+                              <td>{item.color || 'Sin color'}</td>
+
+                              <td>
+                                <span className="stock-number">{item.stock}</span> uds
+                              </td>
+
+                              <td>
+                                <span className={`pill ${estado.className}`}>
+                                  {estado.label}
+                                </span>
+                              </td>
+
+                              <td>
+                                <div className="row-actions">
+                                  <button className="btn-gold" onClick={() => editarInventario(item)}>
+                                    Editar
+                                  </button>
+
+                                  <button className="btn-danger" onClick={() => eliminarInventario(item.id_inventario)}>
+                                    Eliminar
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
             </section>
           )}
 
