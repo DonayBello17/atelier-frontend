@@ -105,25 +105,41 @@ export default function Productos({ usuario, onRequireLogin }) {
     ['admin', 'empleado', 'cliente'].includes(usuario?.rol);
 
   const cargar = async () => {
-    try {
-      setLoading(true);
-      setError('');
+  try {
+    setLoading(true);
+    setError('');
 
-      const [productosRes, inventarioRes, clientesRes] = await Promise.all([
-        api.get('/productos'),
-        api.get('/inventario'),
-        api.get('/clientes'),
-      ]);
+    const [productosRes, inventarioRes, clientesRes] = await Promise.allSettled([
+      api.get('/productos'),
+      api.get('/inventario'),
+      api.get('/clientes'),
+    ]);
 
-      setProductos(productosRes.data.data || []);
-      setInventario(inventarioRes.data.data || []);
-      setClientes(clientesRes.data.data || []);
-    } catch (err) {
+    if (productosRes.status === 'fulfilled') {
+      setProductos(productosRes.value.data.data || []);
+    } else {
+      setProductos([]);
       setError('No se pudieron cargar los productos');
-    } finally {
-      setLoading(false);
     }
-  };
+
+    if (inventarioRes.status === 'fulfilled') {
+      setInventario(inventarioRes.value.data.data || []);
+    } else {
+      setInventario([]);
+      setError('Los productos cargaron, pero el inventario tardó demasiado. Recarga la página.');
+    }
+
+    if (clientesRes.status === 'fulfilled') {
+      setClientes(clientesRes.value.data.data || []);
+    } else {
+      setClientes([]);
+    }
+  } catch (err) {
+    setError('No se pudo cargar el módulo de productos');
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     cargar();
