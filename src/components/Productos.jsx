@@ -75,6 +75,11 @@ export default function Productos({ usuario, onRequireLogin }) {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
+  const [categoriaFiltro, setCategoriaFiltro] = useState('todos');
+  const [disponibilidadFiltro, setDisponibilidadFiltro] = useState('todos');
+  const [ordenProducto, setOrdenProducto] = useState('recientes');
+  const [paginaProductos, setPaginaProductos] = useState(1);
+  const productosPorPagina = 12;
   const [error, setError] = useState('');
   const [editando, setEditando] = useState(null);
   const [preview, setPreview] = useState('');
@@ -167,11 +172,67 @@ export default function Productos({ usuario, onRequireLogin }) {
   }, []);
 
   const productosFiltrados = useMemo(() => {
-    return productos.filter((p) => {
+    const textoBusqueda = busqueda.toLowerCase().trim();
+
+    const resultado = productos.filter((p) => {
       const texto = `${p.nombre || ''} ${p.marca || ''}`.toLowerCase();
-      return texto.includes(busqueda.toLowerCase());
+      const coincideBusqueda = texto.includes(textoBusqueda);
+
+      const coincideCategoria =
+        categoriaFiltro === 'todos' ||
+        String(p.id_categoria) === String(categoriaFiltro);
+
+      const variantes = inventario.filter((item) => {
+        return String(item.id_producto) === String(p.id_producto) && Number(item.stock) > 0;
+      });
+
+      const tieneStock = variantes.length > 0;
+
+      const coincideDisponibilidad =
+        disponibilidadFiltro === 'todos' ||
+        (disponibilidadFiltro === 'con-stock' && tieneStock) ||
+        (disponibilidadFiltro === 'sin-stock' && !tieneStock);
+
+      return coincideBusqueda && coincideCategoria && coincideDisponibilidad;
     });
-  }, [productos, busqueda]);
+
+    return [...resultado].sort((a, b) => {
+      if (ordenProducto === 'precio-menor') {
+        return (Number(a.precio) || 0) - (Number(b.precio) || 0);
+      }
+
+      if (ordenProducto === 'precio-mayor') {
+        return (Number(b.precio) || 0) - (Number(a.precio) || 0);
+      }
+
+      if (ordenProducto === 'nombre') {
+        return String(a.nombre || '').localeCompare(String(b.nombre || ''));
+      }
+
+      return Number(b.id_producto || 0) - Number(a.id_producto || 0);
+    });
+  }, [productos, inventario, busqueda, categoriaFiltro, disponibilidadFiltro, ordenProducto]);
+
+  const totalPaginasProductos = Math.max(
+    1,
+    Math.ceil(productosFiltrados.length / productosPorPagina)
+  );
+
+  useEffect(() => {
+    setPaginaProductos(1);
+  }, [busqueda, categoriaFiltro, disponibilidadFiltro, ordenProducto]);
+
+  useEffect(() => {
+    if (paginaProductos > totalPaginasProductos) {
+      setPaginaProductos(totalPaginasProductos);
+    }
+  }, [paginaProductos, totalPaginasProductos]);
+
+  const productosPaginados = useMemo(() => {
+    const inicio = (paginaProductos - 1) * productosPorPagina;
+    const fin = inicio + productosPorPagina;
+    return productosFiltrados.slice(inicio, fin);
+  }, [productosFiltrados, paginaProductos, productosPorPagina]);
 
   const stats = useMemo(() => {
     const total = productos.length;
@@ -927,6 +988,29 @@ export default function Productos({ usuario, onRequireLogin }) {
 
         .search-row .field {
           flex: 1;
+        }
+
+        .filters-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+          margin-top: 16px;
+        }
+
+        .pagination-row {
+          margin-top: 22px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          color: rgba(255,255,255,0.72);
+          font-weight: 700;
+        }
+
+        .pagination-row button:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+          transform: none;
         }
 
         .search-meta {
@@ -1693,8 +1777,51 @@ export default function Productos({ usuario, onRequireLogin }) {
                 </button>
               </div>
 
+              <div className="filters-grid">
+                <div className="field">
+                  <label>Categoría</label>
+                  <select
+                    className="premium-select"
+                    value={categoriaFiltro}
+                    onChange={(e) => setCategoriaFiltro(e.target.value)}
+                  >
+                    <option value="todos">Todas</option>
+                    <option value="1">Caballeros</option>
+                    <option value="2">Damas</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label>Disponibilidad</label>
+                  <select
+                    className="premium-select"
+                    value={disponibilidadFiltro}
+                    onChange={(e) => setDisponibilidadFiltro(e.target.value)}
+                  >
+                    <option value="todos">Todos</option>
+                    <option value="con-stock">Con stock</option>
+                    <option value="sin-stock">Sin stock</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label>Ordenar por</label>
+                  <select
+                    className="premium-select"
+                    value={ordenProducto}
+                    onChange={(e) => setOrdenProducto(e.target.value)}
+                  >
+                    <option value="recientes">Más recientes</option>
+                    <option value="nombre">Nombre A-Z</option>
+                    <option value="precio-menor">Precio menor</option>
+                    <option value="precio-mayor">Precio mayor</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="search-meta">
-                Mostrando {productosFiltrados.length} de {productos.length} productos.
+                Mostrando {productosPaginados.length} de {productosFiltrados.length} productos filtrados.
+                Total catálogo: {productos.length}.
               </div>
 
               {!esAdmin && error && <div className="error-box">{error}</div>}
@@ -1708,7 +1835,7 @@ export default function Productos({ usuario, onRequireLogin }) {
             </div>
           ) : (
             <section className="products-grid">
-              {productosFiltrados.map((p) => {
+              {productosPaginados.map((p) => {
                 const variantes = getVariantesProducto(p);
                 const disponible = variantes.length > 0;
                 const resumenTallas = getResumenTallasProducto(p);
@@ -1785,6 +1912,30 @@ export default function Productos({ usuario, onRequireLogin }) {
                 );
               })}
             </section>
+          )}
+
+          {productosFiltrados.length > productosPorPagina && (
+            <div className="pagination-row">
+              <button
+                className="btn-dark"
+                onClick={() => setPaginaProductos((prev) => Math.max(1, prev - 1))}
+                disabled={paginaProductos === 1}
+              >
+                Anterior
+              </button>
+
+              <span>
+                Página {paginaProductos} de {totalPaginasProductos}
+              </span>
+
+              <button
+                className="btn-dark"
+                onClick={() => setPaginaProductos((prev) => Math.min(totalPaginasProductos, prev + 1))}
+                disabled={paginaProductos === totalPaginasProductos}
+              >
+                Siguiente
+              </button>
+            </div>
           )}
 
           {puedeGestionarInventario && !esVistaTienda && (
