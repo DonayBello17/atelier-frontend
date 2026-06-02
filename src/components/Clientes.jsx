@@ -352,20 +352,20 @@ export default function Clientes({ usuario }) {
           margin: 0 auto;
         }
 
-        .clients-hero {
-          position: relative;
-          overflow: hidden;
-          min-height: 220px;
-          border-radius: 30px;
-          padding: 34px;
-          display: flex;
-          align-items: center;
-          border: 1px solid rgba(255,255,255,0.10);
-          background:
-            radial-gradient(circle at top right, rgba(214,180,105,0.10), transparent 26%),
-            linear-gradient(135deg, #08090b 0%, #131418 48%, #090a0c 100%);
-          box-shadow: 0 24px 60px rgba(0,0,0,0.28);
-        }
+      .clients-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 150px;
+  border-radius: 24px;
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,0.10);
+  background:
+    radial-gradient(circle at top right, rgba(214,180,105,0.10), transparent 26%),
+    linear-gradient(135deg, #08090b 0%, #131418 48%, #090a0c 100%);
+  box-shadow: 0 18px 42px rgba(0,0,0,0.22);
+}
 
         .clients-hero::before {
           content: '';
@@ -384,43 +384,43 @@ export default function Clientes({ usuario }) {
         }
 
         .eyebrow {
-          display: inline-flex;
-          width: fit-content;
-          margin-bottom: 18px;
-          padding: 10px 16px;
-          border-radius: 999px;
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.14);
-          font-size: 12px;
-          letter-spacing: 2px;
-          text-transform: uppercase;
-          color: #f6f1e7;
-        }
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 10px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #f6f1e7;
+}
 
-        .clients-hero h1 {
-          margin: 0 0 14px;
-          font-size: clamp(38px, 4.3vw, 54px);
-          line-height: 1.05;
-          letter-spacing: -1px;
-          color: #ffffff;
-          font-weight: 900;
-          max-width: 760px;
-        }
+        ..clients-hero h1 {
+  margin: 0 0 8px;
+  font-size: clamp(30px, 3.2vw, 38px);
+  line-height: 1.05;
+  letter-spacing: -0.6px;
+  color: #ffffff;
+  font-weight: 900;
+  max-width: 760px;
+}
 
-        .clients-hero p {
-          margin: 0;
-          max-width: 720px;
-          color: rgba(255,255,255,0.88);
-          font-size: 16px;
-          line-height: 1.8;
-        }
+       .clients-hero p {
+  margin: 0;
+  max-width: 700px;
+  color: rgba(255,255,255,0.88);
+  font-size: 14px;
+  line-height: 1.5;
+}
 
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 18px;
-          margin-top: 24px;
-        }
+      .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
 
         .stat-card,
         .glass-card {
@@ -432,8 +432,8 @@ export default function Clientes({ usuario }) {
         }
 
         .stat-card {
-          padding: 22px;
-        }
+  padding: 16px 18px;
+}
 
         .stat-label {
           color: rgba(255,255,255,0.62);
@@ -443,23 +443,23 @@ export default function Clientes({ usuario }) {
           letter-spacing: 1.4px;
         }
 
-        .stat-value {
-          font-size: 32px;
-          font-weight: 800;
-        }
+  .stat-value {
+  font-size: 28px;
+  font-weight: 800;
+}
 
-        .stat-accent {
-          margin-top: 10px;
-          font-size: 13px;
-          color: #d6b469;
-        }
+       .stat-accent {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #d6b469;
+}
 
-        .toolbar {
-          display: grid;
-          grid-template-columns: 1.1fr 0.9fr;
-          gap: 18px;
-          margin-top: 24px;
-        }
+       .toolbar {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 16px;
+  margin-top: 16px;
+}
 
         .glass-card {
           padding: 24px;
@@ -752,14 +752,14 @@ export default function Clientes({ usuario }) {
             padding: 16px;
           }
 
-          .clients-hero {
-            min-height: 240px;
-            padding: 22px;
-          }
+         .clients-hero {
+  min-height: 150px;
+  padding: 18px;
+}
 
-          .clients-hero h1 {
-            font-size: 36px;
-          }
+.clients-hero h1 {
+  font-size: 28px;
+}
 
           .stats-grid,
           .form-grid,
