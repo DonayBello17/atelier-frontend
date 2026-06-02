@@ -68,6 +68,7 @@ const getImagenProducto = (producto) => {
 
 export default function Productos({ usuario, onRequireLogin }) {
   const fileInputRef = useRef(null);
+  const excelInputRef = useRef(null);
 
   const [productos, setProductos] = useState([]);
   const [inventario, setInventario] = useState([]);
@@ -166,7 +167,68 @@ export default function Productos({ usuario, onRequireLogin }) {
       setLoading(false);
     }
   };
+  const exportarExcel = async () => {
+    try {
+      setError('');
+      setMensaje('');
 
+      const response = await api.get('/productos/exportar-excel', {
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+
+      enlace.href = url;
+      enlace.download = 'catalogo_atelier.xlsx';
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+
+      window.URL.revokeObjectURL(url);
+
+      setMensaje('Excel exportado correctamente');
+    } catch (err) {
+      console.error('Error exportando Excel:', err);
+      setError('No se pudo exportar el Excel');
+    }
+  };
+
+  const importarExcel = async (file) => {
+    if (!file) return;
+
+    try {
+      setError('');
+      setMensaje('');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await api.post('/productos/importar-excel', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setMensaje(response.data?.message || 'Importación completada correctamente');
+
+      if (excelInputRef.current) {
+        excelInputRef.current.value = '';
+      }
+
+      await cargar();
+    } catch (err) {
+      console.error('Error importando Excel:', err);
+      setError(err.response?.data?.message || 'No se pudo importar el Excel');
+    }
+  };
+
+
+  
   useEffect(() => {
     cargar();
   }, []);
@@ -1819,10 +1881,38 @@ export default function Productos({ usuario, onRequireLogin }) {
                 </div>
               </div>
 
-              <div className="search-meta">
+                            <div className="search-meta">
                 Mostrando {productosPaginados.length} de {productosFiltrados.length} productos filtrados.
                 Total catálogo: {productos.length}.
               </div>
+
+              {puedeGestionarInventario && (
+                <div className="actions-row">
+                  <button
+                    type="button"
+                    className="btn-gold"
+                    onClick={exportarExcel}
+                  >
+                    Exportar Excel
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-dark"
+                    onClick={() => excelInputRef.current?.click()}
+                  >
+                    Importar Excel
+                  </button>
+
+                  <input
+                    ref={excelInputRef}
+                    type="file"
+                    accept=".xlsx,.xls"
+                    style={{ display: 'none' }}
+                    onChange={(e) => importarExcel(e.target.files?.[0])}
+                  />
+                </div>
+              )}
 
               {!esAdmin && error && <div className="error-box">{error}</div>}
               {!esAdmin && mensaje && <div className="success-box">{mensaje}</div>}
