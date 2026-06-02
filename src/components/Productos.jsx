@@ -794,24 +794,24 @@ export default function Productos({ usuario, onRequireLogin }) {
         }
 
         .products-hero {
-          position: relative;
-          overflow: hidden;
-          min-height: 300px;
-          border-radius: 30px;
-          padding: 34px;
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 20px;
-          border: 1px solid rgba(255,255,255,0.10);
-          background:
-            linear-gradient(to right, rgba(0,0,0,0.56), rgba(0,0,0,0.25)),
-            linear-gradient(to top, rgba(0,0,0,0.58), rgba(0,0,0,0.10)),
-            url(${bgImage});
-          background-size: cover;
-          background-position: center top;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.28);
-        }
+  position: relative;
+  overflow: hidden;
+  min-height: 170px;
+  border-radius: 24px;
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background:
+    linear-gradient(to right, rgba(0,0,0,0.62), rgba(0,0,0,0.28)),
+    linear-gradient(to top, rgba(0,0,0,0.48), rgba(0,0,0,0.08)),
+    url(${bgImage});
+  background-size: cover;
+  background-position: center top;
+  box-shadow: 0 18px 42px rgba(0,0,0,0.22);
+}
 
         .products-hero::before {
           content: '';
@@ -833,40 +833,40 @@ export default function Productos({ usuario, onRequireLogin }) {
         }
 
         .eyebrow {
-          display: inline-flex;
-          width: fit-content;
-          margin-bottom: 18px;
-          padding: 10px 16px;
-          border-radius: 999px;
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.14);
-          font-size: 12px;
-          letter-spacing: 2px;
-          text-transform: uppercase;
-          color: #f6f1e7;
-        }
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 10px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #f6f1e7;
+}
 
         .products-hero h1 {
-          margin: 0 0 14px;
-          font-size: 48px;
-          line-height: 1.05;
-          letter-spacing: -1px;
-        }
+  margin: 0 0 8px;
+  font-size: 34px;
+  line-height: 1.05;
+  letter-spacing: -0.6px;
+}
 
         .products-hero p {
-          margin: 0;
-          max-width: 640px;
-          color: rgba(255,255,255,0.82);
-          font-size: 16px;
-          line-height: 1.8;
-        }
+  margin: 0;
+  max-width: 620px;
+  color: rgba(255,255,255,0.82);
+  font-size: 14px;
+  line-height: 1.5;
+}
 
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 18px;
-          margin-top: 24px;
-        }
+       .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
 
         .stat-card,
         .glass-card,
@@ -878,9 +878,9 @@ export default function Productos({ usuario, onRequireLogin }) {
           border-radius: 24px;
         }
 
-        .stat-card {
-          padding: 22px;
-        }
+       .stat-card {
+  padding: 16px 18px;
+}
 
         .stat-label {
           color: rgba(255,255,255,0.62);
@@ -890,23 +890,23 @@ export default function Productos({ usuario, onRequireLogin }) {
           letter-spacing: 1.4px;
         }
 
-        .stat-value {
-          font-size: 32px;
-          font-weight: 800;
-        }
+      .stat-value {
+  font-size: 28px;
+  font-weight: 800;
+}
 
-        .stat-accent {
-          margin-top: 10px;
-          font-size: 13px;
-          color: #d6b469;
-        }
+       .stat-accent {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #d6b469;
+}
 
         .toolbar {
-          display: grid;
-          grid-template-columns: 1.15fr 0.85fr;
-          gap: 18px;
-          margin-top: 24px;
-        }
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 16px;
+  margin-top: 16px;
+}
 
         .glass-card {
           padding: 24px;
@@ -1566,16 +1566,16 @@ export default function Productos({ usuario, onRequireLogin }) {
             padding: 16px;
           }
 
-          .products-hero {
-            min-height: 280px;
-            padding: 22px;
-            flex-direction: column;
-            align-items: flex-start;
-          }
+         .products-hero {
+  min-height: 170px;
+  padding: 18px;
+  flex-direction: column;
+  align-items: flex-start;
+}
 
-          .products-hero h1 {
-            font-size: 36px;
-          }
+.products-hero h1 {
+  font-size: 28px;
+}
 
           .stats-grid,
           .form-grid,
