@@ -135,24 +135,23 @@ export default function Tallas({ usuario }) {
           margin: 0 auto;
         }
 
-        .hero {
-          position: relative;
-          overflow: hidden;
-          min-height: 220px;
-          border-radius: 30px;
-          padding: 34px;
-          display: flex;
-          align-items: flex-end;
-          border: 1px solid rgba(255,255,255,0.10);
-          background:
-         background:
-  radial-gradient(circle at top right, rgba(214,180,105,0.10), transparent 26%),
-  linear-gradient(135deg, #08090b 0%, #131418 48%, #090a0c 100%);
-            url(${bgImage});
-          background-size: cover;
-          background-position: center;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.28);
-        }
+      .hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 150px;
+  border-radius: 24px;
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,0.10);
+  background:
+    linear-gradient(to right, rgba(0,0,0,0.62), rgba(0,0,0,0.28)),
+    linear-gradient(to top, rgba(0,0,0,0.48), rgba(0,0,0,0.08)),
+    url(${bgImage});
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 18px 42px rgba(0,0,0,0.22);
+}
 
         .hero-content {
           position: relative;
@@ -160,37 +159,37 @@ export default function Tallas({ usuario }) {
           max-width: 720px;
         }
 
-        .eyebrow {
-          display: inline-flex;
-          margin-bottom: 18px;
-          padding: 10px 16px;
-          border-radius: 999px;
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.14);
-          font-size: 12px;
-          letter-spacing: 2px;
-          text-transform: uppercase;
-        }
+      .eyebrow {
+  display: inline-flex;
+  margin-bottom: 10px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
 
-        .hero h1 {
-          margin: 0 0 14px;
-          font-size: 48px;
-          line-height: 1.05;
-        }
+      .hero h1 {
+  margin: 0 0 8px;
+  font-size: 34px;
+  line-height: 1.05;
+}
 
-        .hero p {
-          margin: 0;
-          color: rgba(255,255,255,0.82);
-          font-size: 16px;
-          line-height: 1.8;
-        }
+       .hero p {
+  margin: 0;
+  color: rgba(255,255,255,0.82);
+  font-size: 14px;
+  line-height: 1.5;
+}
 
         .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 18px;
-          margin-top: 24px;
-        }
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
 
         .stat-card,
         .glass-card,
@@ -203,8 +202,8 @@ export default function Tallas({ usuario }) {
         }
 
         .stat-card {
-          padding: 22px;
-        }
+  padding: 16px 18px;
+}
 
         .stat-label {
           color: rgba(255,255,255,0.62);
@@ -214,23 +213,22 @@ export default function Tallas({ usuario }) {
           letter-spacing: 1.4px;
         }
 
-        .stat-value {
-          font-size: 32px;
-          font-weight: 800;
-        }
-
+      .stat-value {
+  font-size: 28px;
+  font-weight: 800;
+}
         .stat-accent {
-          margin-top: 10px;
-          font-size: 13px;
-          color: #d6b469;
-        }
+  margin-top: 6px;
+  font-size: 12px;
+  color: #d6b469;
+}
 
         .toolbar {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 18px;
-          margin-top: 24px;
-        }
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
 
         .glass-card {
           padding: 24px;
@@ -308,23 +306,22 @@ export default function Tallas({ usuario }) {
           border: 1px solid rgba(220,38,38,0.26);
         }
 
-        .sizes-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: 18px;
-          margin-top: 24px;
-        }
+       .sizes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.size-card {
+  padding: 16px 18px;
+}
 
-        .size-card {
-          padding: 22px;
-        }
-
-        .size-name {
-          font-size: 40px;
-          font-weight: 900;
-          color: #d6b469;
-          margin-bottom: 12px;
-        }
+       .size-name {
+  font-size: 32px;
+  font-weight: 900;
+  color: #d6b469;
+  margin-bottom: 8px;
+}
 
         .size-meta {
           color: rgba(255,255,255,0.68);
@@ -354,9 +351,14 @@ export default function Tallas({ usuario }) {
             padding: 16px;
           }
 
-          .hero h1 {
-            font-size: 36px;
-          }
+         .hero {
+  min-height: 150px;
+  padding: 18px;
+}
+
+.hero h1 {
+  font-size: 28px;
+}
 
           .stats-grid,
           .toolbar {
