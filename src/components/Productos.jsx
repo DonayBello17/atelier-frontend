@@ -96,6 +96,7 @@ export default function Productos({ usuario, onRequireLogin }) {
 
   const [carrito, setCarrito] = useState([]);
   const [clienteCarrito, setClienteCarrito] = useState('');
+  const [busquedaClienteCarrito, setBusquedaClienteCarrito] = useState('');
   const [productoModal, setProductoModal] = useState(null);
   const [idInventarioModal, setIdInventarioModal] = useState('');
   const [cantidadModal, setCantidadModal] = useState(1);
@@ -438,6 +439,34 @@ export default function Productos({ usuario, onRequireLogin }) {
     return carrito.reduce((acc, item) => acc + (Number(item.cantidad) || 0), 0);
   }, [carrito]);
 
+  const clientesCarritoFiltrados = useMemo(() => {
+  const texto = busquedaClienteCarrito.toLowerCase().trim();
+
+  return clientes
+    .filter((cliente) => cliente.estado !== 'inactivo')
+    .filter((cliente) => {
+      if (!texto) return true;
+
+      const datos = `
+        ${cliente.nombre || ''}
+        ${cliente.email || ''}
+        ${cliente.telefono || ''}
+        ${cliente.cedula || ''}
+        ${cliente.documento || ''}
+        ${cliente.id_cliente || ''}
+      `.toLowerCase();
+
+      return datos.includes(texto);
+    })
+    .slice(0, 8);
+}, [clientes, busquedaClienteCarrito]);
+
+const clienteSeleccionadoCarrito = useMemo(() => {
+  return clientes.find((cliente) => {
+    return String(cliente.id_cliente) === String(clienteCarrito);
+  });
+}, [clientes, clienteCarrito]);
+
   const formatPrecio = (precio) => {
     return new Intl.NumberFormat('es-DO', {
       style: 'currency',
@@ -739,10 +768,11 @@ export default function Productos({ usuario, onRequireLogin }) {
       });
 
       setCarrito([]);
-      setClienteCarrito('');
-      setMostrarCarrito(false);
-      setConfirmarCompra(false);
-      setMensaje('Venta realizada correctamente desde el carrito');
+setClienteCarrito('');
+setBusquedaClienteCarrito('');
+setMostrarCarrito(false);
+setConfirmarCompra(false);
+setMensaje('Venta realizada correctamente desde el carrito');
 
       await cargar();
     } catch (err) {
@@ -959,6 +989,53 @@ export default function Productos({ usuario, onRequireLogin }) {
           background: #111214;
           color: white;
         }
+
+        .client-results {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  max-height: 190px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.client-result-btn {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.045);
+  color: white;
+  border-radius: 14px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.22s ease;
+}
+
+.client-result-btn:hover,
+.client-result-btn.active {
+  background: rgba(214,180,105,0.16);
+  border-color: rgba(214,180,105,0.38);
+}
+
+.client-result-name {
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.client-result-meta {
+  color: rgba(255,255,255,0.58);
+  font-size: 12px;
+}
+
+.client-selected {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(34,197,94,0.10);
+  border: 1px solid rgba(34,197,94,0.24);
+  color: #86efac;
+  font-size: 13px;
+}
 
         .photo-box {
           margin-top: 18px;
@@ -2347,24 +2424,58 @@ export default function Productos({ usuario, onRequireLogin }) {
                 </div>
 
                 {usuario?.rol !== 'cliente' && (
-                  <div className="field">
-                    <label>Cliente</label>
-                    <select
-                      className="premium-select"
-                      value={clienteCarrito}
-                      onChange={(e) => setClienteCarrito(e.target.value)}
-                    >
-                      <option value="">Selecciona un cliente</option>
-                      {clientes
-                        .filter((cliente) => cliente.estado !== 'inactivo')
-                        .map((cliente) => (
-                          <option key={cliente.id_cliente} value={cliente.id_cliente}>
-                            {cliente.nombre}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                )}
+  <div className="field">
+    <label>Buscar cliente</label>
+
+    <input
+      className="premium-input"
+      placeholder="Escribe nombre, correo, documento o ID..."
+      value={busquedaClienteCarrito}
+      onChange={(e) => {
+        setBusquedaClienteCarrito(e.target.value);
+        setClienteCarrito('');
+      }}
+    />
+
+    {clienteSeleccionadoCarrito && (
+      <div className="client-selected">
+        Cliente seleccionado: <strong>{clienteSeleccionadoCarrito.nombre}</strong>
+      </div>
+    )}
+
+    <div className="client-results">
+      {clientesCarritoFiltrados.length === 0 ? (
+        <div className="empty-box" style={{ marginTop: 0, padding: 18 }}>
+          No se encontró ningún cliente.
+        </div>
+      ) : (
+        clientesCarritoFiltrados.map((cliente) => (
+          <button
+            type="button"
+            key={cliente.id_cliente}
+            className={`client-result-btn ${
+              String(clienteCarrito) === String(cliente.id_cliente) ? 'active' : ''
+            }`}
+            onClick={() => {
+              setClienteCarrito(cliente.id_cliente);
+              setBusquedaClienteCarrito(cliente.nombre || '');
+            }}
+          >
+            <div className="client-result-name">
+              {cliente.nombre}
+            </div>
+
+            <div className="client-result-meta">
+              ID: {cliente.id_cliente}
+              {cliente.email ? ` · ${cliente.email}` : ''}
+              {cliente.telefono ? ` · ${cliente.telefono}` : ''}
+            </div>
+          </button>
+        ))
+      )}
+    </div>
+  </div>
+)}
 
                 {usuario?.rol === 'cliente' && (
                   <div className="success-box">
