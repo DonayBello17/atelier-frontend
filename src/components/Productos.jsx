@@ -106,7 +106,9 @@ export default function Productos({ usuario, onRequireLogin }) {
   const [confirmarCompra, setConfirmarCompra] = useState(false);
 
   const [busquedaInventario, setBusquedaInventario] = useState('');
-  const [editandoInventario, setEditandoInventario] = useState(null);
+const [paginaInventario, setPaginaInventario] = useState(1);
+const registrosInventarioPorPagina = 8;
+const [editandoInventario, setEditandoInventario] = useState(null);
   const [formInventario, setFormInventario] = useState({
     id_producto: '',
     id_talla: '',
@@ -323,6 +325,27 @@ export default function Productos({ usuario, onRequireLogin }) {
       return texto.includes(textoBusqueda);
     });
   }, [inventario, busquedaInventario]);
+
+  const totalPaginasInventario = Math.max(
+  1,
+  Math.ceil(inventarioFiltrado.length / registrosInventarioPorPagina)
+);
+
+useEffect(() => {
+  setPaginaInventario(1);
+}, [busquedaInventario]);
+
+useEffect(() => {
+  if (paginaInventario > totalPaginasInventario) {
+    setPaginaInventario(totalPaginasInventario);
+  }
+}, [paginaInventario, totalPaginasInventario]);
+
+const inventarioPaginado = useMemo(() => {
+  const inicio = (paginaInventario - 1) * registrosInventarioPorPagina;
+  const fin = inicio + registrosInventarioPorPagina;
+  return inventarioFiltrado.slice(inicio, fin);
+}, [inventarioFiltrado, paginaInventario]);
 
   const statsInventario = useMemo(() => {
     const totalUnidades = inventario.reduce((acc, item) => acc + (Number(item.stock) || 0), 0);
@@ -939,26 +962,26 @@ setMensaje('Venta realizada correctamente desde el carrito');
 }
 
         .glass-card {
-          padding: 24px;
-        }
+  padding: 18px;
+}
 
         .card-title {
-          margin: 0 0 8px;
-          font-size: 22px;
-        }
+  margin: 0 0 6px;
+  font-size: 20px;
+}
 
-        .card-subtitle {
-          margin: 0 0 20px;
-          color: rgba(255,255,255,0.62);
-          font-size: 14px;
-          line-height: 1.7;
-        }
+     .card-subtitle {
+  margin: 0 0 14px;
+  color: rgba(255,255,255,0.62);
+  font-size: 13px;
+  line-height: 1.5;
+}
 
         .form-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px;
-        }
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
 
         .field {
           display: flex;
@@ -973,17 +996,17 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .premium-input,
-        .premium-select {
-          width: 100%;
-          min-height: 54px;
-          border-radius: 16px;
-          border: 1px solid rgba(255,255,255,0.12);
-          background: rgba(255,255,255,0.04);
-          color: white;
-          outline: none;
-          padding: 0 16px;
-          font-size: 14px;
-        }
+.premium-select {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: white;
+  outline: none;
+  padding: 0 14px;
+  font-size: 13px;
+}
 
         .premium-select option {
           background: #111214;
@@ -1038,38 +1061,38 @@ setMensaje('Venta realizada correctamente desde el carrito');
 }
 
         .photo-box {
-          margin-top: 18px;
-          min-height: 220px;
-          border-radius: 22px;
-          overflow: hidden;
-          border: 1px dashed rgba(214,180,105,0.35);
-          background:
-            radial-gradient(circle at top right, rgba(214,180,105,0.10), transparent 28%),
-            rgba(255,255,255,0.025);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-        }
+  margin-top: 12px;
+  min-height: 140px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px dashed rgba(214,180,105,0.35);
+  background:
+    radial-gradient(circle at top right, rgba(214,180,105,0.10), transparent 28%),
+    rgba(255,255,255,0.025);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
 
         .photo-box img {
-          width: 100%;
-          height: 260px;
-          object-fit: cover;
-          display: block;
-        }
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+  display: block;
+}
 
         .photo-empty {
           padding: 24px;
         }
 
         .photo-empty-title {
-          color: #d6b469;
-          font-family: Georgia, 'Times New Roman', serif;
-          letter-spacing: 2px;
-          font-size: 28px;
-          margin-bottom: 10px;
-        }
+  color: #d6b469;
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: 1.6px;
+  font-size: 22px;
+  margin-bottom: 6px;
+}
 
         .photo-empty-text {
           color: rgba(255,255,255,0.68);
@@ -1179,22 +1202,22 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .products-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
-          gap: 18px;
-          margin-top: 24px;
-        }
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
 
         .product-card {
           overflow: hidden;
         }
 
         .product-image {
-          position: relative;
-          height: 280px;
-          background: #141519;
-          overflow: hidden;
-        }
+  position: relative;
+  height: 220px;
+  background: #141519;
+  overflow: hidden;
+}
 
         .product-image img {
           width: 100%;
@@ -1224,8 +1247,8 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .product-info {
-          padding: 18px;
-        }
+  padding: 14px;
+}
 
         .product-brand {
           color: #d6b469;
@@ -1236,16 +1259,16 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .product-name {
-          margin: 0 0 10px;
-          font-size: 22px;
-          line-height: 1.2;
-        }
+  margin: 0 0 8px;
+  font-size: 18px;
+  line-height: 1.2;
+}
 
-        .product-price {
-          font-size: 26px;
-          font-weight: 900;
-          margin-bottom: 16px;
-        }
+       .product-price {
+  font-size: 22px;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
 
         .product-availability {
           margin-top: -6px;
@@ -1367,21 +1390,21 @@ setMensaje('Venta realizada correctamente desde el carrito');
           background: rgba(255,255,255,0.045);
         }
 
-        .inventory-table th {
-          text-align: left;
-          padding: 18px;
-          color: rgba(255,255,255,0.64);
-          font-size: 12px;
-          text-transform: uppercase;
-          letter-spacing: 1.4px;
-          border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
+       .inventory-table th {
+  text-align: left;
+  padding: 12px 14px;
+  color: rgba(255,255,255,0.64);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
 
         .inventory-table td {
-          padding: 18px;
-          border-bottom: 1px solid rgba(255,255,255,0.07);
-          vertical-align: middle;
-        }
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  vertical-align: middle;
+}
 
         .inventory-product-name {
           font-weight: 900;
@@ -1427,10 +1450,10 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .stock-number {
-          color: #f2eee7;
-          font-size: 20px;
-          font-weight: 900;
-        }
+  color: #f2eee7;
+  font-size: 17px;
+  font-weight: 900;
+}
 
         .row-actions {
           display: flex;
@@ -2243,8 +2266,9 @@ setMensaje('Venta realizada correctamente desde el carrito');
                   </div>
 
                   <div className="search-meta">
-                    Mostrando {inventarioFiltrado.length} de {inventario.length} registros.
-                  </div>
+  Mostrando {inventarioPaginado.length} de {inventarioFiltrado.length} registros filtrados.
+  Total inventario: {inventario.length}.
+</div>
                 </div>
               </section>
 
@@ -2268,7 +2292,7 @@ setMensaje('Venta realizada correctamente desde el carrito');
                       </thead>
 
                       <tbody>
-                        {inventarioFiltrado.map((item) => {
+                        {inventarioPaginado.map((item) => {
                           const estado = estadoStock(item.stock);
                           const productoRelacionado = productos.find(
                             (p) => String(p.id_producto) === String(item.id_producto)
@@ -2318,8 +2342,36 @@ setMensaje('Venta realizada correctamente desde el carrito');
                           );
                         })}
                       </tbody>
-                    </table>
+                                      </table>
                   </div>
+
+                  {inventarioFiltrado.length > registrosInventarioPorPagina && (
+                    <div className="pagination-row">
+                      <button
+                        className="btn-dark"
+                        onClick={() => setPaginaInventario((prev) => Math.max(1, prev - 1))}
+                        disabled={paginaInventario === 1}
+                      >
+                        Anterior
+                      </button>
+
+                      <span>
+                        Página {paginaInventario} de {totalPaginasInventario}
+                      </span>
+
+                      <button
+                        className="btn-dark"
+                        onClick={() =>
+                          setPaginaInventario((prev) =>
+                            Math.min(totalPaginasInventario, prev + 1)
+                          )
+                        }
+                        disabled={paginaInventario === totalPaginasInventario}
+                      >
+                        Siguiente
+                      </button>
+                    </div>
+                  )}
                 </section>
               )}
             </section>
