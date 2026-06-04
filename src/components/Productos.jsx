@@ -105,7 +105,8 @@ export default function Productos({ usuario, onRequireLogin }) {
   const [mensaje, setMensaje] = useState('');
   const [confirmarCompra, setConfirmarCompra] = useState(false);
 
-  const [busquedaInventario, setBusquedaInventario] = useState('');
+const [busquedaInventario, setBusquedaInventario] = useState('');
+const [busquedaProductoInventario, setBusquedaProductoInventario] = useState('');
 const [paginaInventario, setPaginaInventario] = useState(1);
 const registrosInventarioPorPagina = 8;
 const [editandoInventario, setEditandoInventario] = useState(null);
@@ -326,6 +327,33 @@ const [editandoInventario, setEditandoInventario] = useState(null);
     });
   }, [inventario, busquedaInventario]);
 
+  const productosInventarioFiltrados = useMemo(() => {
+  const texto = busquedaProductoInventario.toLowerCase().trim();
+
+  return productos
+    .filter((producto) => {
+      if (!texto) return true;
+
+      const datos = `
+        ${producto.id_producto || ''}
+        ${producto.nombre || ''}
+        ${producto.marca || ''}
+      `.toLowerCase();
+
+      return datos.includes(texto);
+    })
+    .slice(0, 8);
+}, [productos, busquedaProductoInventario]);
+
+const productoSeleccionadoInventario = useMemo(() => {
+  return productos.find((producto) => {
+    return String(producto.id_producto) === String(formInventario.id_producto);
+  });
+}, [productos, formInventario.id_producto]);
+
+
+
+
   const totalPaginasInventario = Math.max(
   1,
   Math.ceil(inventarioFiltrado.length / registrosInventarioPorPagina)
@@ -376,15 +404,16 @@ const inventarioPaginado = useMemo(() => {
   };
 
   const limpiarInventario = () => {
-    setEditandoInventario(null);
-    setFormInventario({
-      id_producto: '',
-      id_talla: '',
-      color: '',
-      stock: '',
-    });
-    setError('');
-  };
+  setEditandoInventario(null);
+  setBusquedaProductoInventario('');
+  setFormInventario({
+    id_producto: '',
+    id_talla: '',
+    color: '',
+    stock: '',
+  });
+  setError('');
+};
 
   const guardarInventario = async () => {
     if (!formInventario.id_producto || !formInventario.id_talla || formInventario.stock === '') {
@@ -419,13 +448,17 @@ const inventarioPaginado = useMemo(() => {
   };
 
   const editarInventario = (item) => {
-    setEditandoInventario(item.id_inventario);
-    setFormInventario({
-      id_producto: item.id_producto || '',
-      id_talla: item.id_talla || '',
-      color: item.color || '',
-      stock: item.stock ?? '',
-    });
+  setEditandoInventario(item.id_inventario);
+  setBusquedaProductoInventario(
+    `${item.producto || ''}${item.marca ? ` - ${item.marca}` : ''}`.trim()
+  );
+
+  setFormInventario({
+    id_producto: item.id_producto || '',
+    id_talla: item.id_talla || '',
+    color: item.color || '',
+    stock: item.stock ?? '',
+  });
     setError('');
     setMensaje('');
 
@@ -2178,21 +2211,71 @@ setMensaje('Venta realizada correctamente desde el carrito');
                   </p>
 
                   <div className="form-grid">
-                    <div className="field">
-                      <label>Producto</label>
-                      <select
-                        className="premium-select"
-                        value={formInventario.id_producto}
-                        onChange={(e) => setFormInventario({ ...formInventario, id_producto: e.target.value })}
-                      >
-                        <option value="">Selecciona un producto</option>
-                        {productos.map((p) => (
-                          <option key={p.id_producto} value={p.id_producto}>
-                            {p.nombre} {p.marca ? `- ${p.marca}` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                   <div className="field">
+  <label>Buscar producto</label>
+
+  <input
+    className="premium-input"
+    placeholder="Escribe nombre, marca o ID..."
+    value={busquedaProductoInventario}
+    onChange={(e) => {
+      setBusquedaProductoInventario(e.target.value);
+      setFormInventario({ ...formInventario, id_producto: '' });
+    }}
+  />
+
+  {productoSeleccionadoInventario && (
+    <div className="client-selected">
+      Producto seleccionado:{' '}
+      <strong>
+        {productoSeleccionadoInventario.nombre}
+        {productoSeleccionadoInventario.marca
+          ? ` - ${productoSeleccionadoInventario.marca}`
+          : ''}
+      </strong>
+    </div>
+  )}
+
+  <div className="client-results">
+    {productosInventarioFiltrados.length === 0 ? (
+      <div className="empty-box" style={{ marginTop: 0, padding: 18 }}>
+        No se encontró ningún producto.
+      </div>
+    ) : (
+      productosInventarioFiltrados.map((producto) => (
+        <button
+          type="button"
+          key={producto.id_producto}
+          className={`client-result-btn ${
+            String(formInventario.id_producto) === String(producto.id_producto)
+              ? 'active'
+              : ''
+          }`}
+          onClick={() => {
+            setFormInventario({
+              ...formInventario,
+              id_producto: producto.id_producto,
+            });
+
+            setBusquedaProductoInventario(
+              `${producto.nombre || ''}${producto.marca ? ` - ${producto.marca}` : ''}`
+            );
+          }}
+        >
+          <div className="client-result-name">
+            {producto.nombre}
+          </div>
+
+          <div className="client-result-meta">
+            ID: {producto.id_producto}
+            {producto.marca ? ` · ${producto.marca}` : ''}
+            {producto.precio ? ` · ${formatPrecio(producto.precio)}` : ''}
+          </div>
+        </button>
+      ))
+    )}
+  </div>
+</div>
 
                     <div className="field">
                       <label>Talla</label>
