@@ -326,6 +326,54 @@ const [editandoInventario, setEditandoInventario] = useState(null);
       return texto.includes(textoBusqueda);
     });
   }, [inventario, busquedaInventario]);
+  const productosInventarioCoincidentes = useMemo(() => {
+  const texto = busquedaProductoInventario.toLowerCase().trim();
+
+  if (!texto) {
+    return productos.slice(0, 20);
+  }
+
+  const esCodigo = /^\d+$/.test(texto);
+
+  const filtrados = productos.filter((producto) => {
+    const codigoProducto = obtenerCodigoProducto(producto).toLowerCase();
+
+    const nombre = String(producto.nombre || '').toLowerCase();
+    const marca = String(producto.marca || '').toLowerCase();
+    const idBD = String(producto.id_producto || '').toLowerCase();
+
+    if (esCodigo) {
+      return codigoProducto === texto || idBD === texto;
+    }
+
+    return (
+      nombre.includes(texto) ||
+      marca.includes(texto) ||
+      idBD.includes(texto) ||
+      codigoProducto.includes(texto)
+    );
+  });
+
+  return filtrados.sort((a, b) => {
+    const codigoA = obtenerCodigoProducto(a).toLowerCase();
+    const codigoB = obtenerCodigoProducto(b).toLowerCase();
+
+    const exactoA =
+      codigoA === texto || String(a.id_producto) === texto;
+
+    const exactoB =
+      codigoB === texto || String(b.id_producto) === texto;
+
+    if (exactoA && !exactoB) return -1;
+    if (!exactoA && exactoB) return 1;
+
+    return Number(b.id_producto || 0) - Number(a.id_producto || 0);
+  });
+}, [productos, busquedaProductoInventario]);
+
+const productosInventarioFiltrados = useMemo(() => {
+  return productosInventarioCoincidentes.slice(0, 20);
+}, [productosInventarioCoincidentes]);
 
   const productosInventarioFiltrados = useMemo(() => {
   const texto = busquedaProductoInventario.toLowerCase().trim();
@@ -524,12 +572,32 @@ const clienteSeleccionadoCarrito = useMemo(() => {
 }, [clientes, clienteCarrito]);
 
   const formatPrecio = (precio) => {
+    const obtenerCodigoProducto = (producto) => {
+  const nombre = String(producto?.nombre || '');
+  const coincidencia = nombre.match(/(\d+)\s*$/);
+
+  return coincidencia ? coincidencia[1] : String(producto?.id_producto || '');
+};
+
+const obtenerNombreBaseProducto = (producto) => {
+  return String(producto?.nombre || '').replace(/\s+\d+\s*$/, '').trim();
+};
     return new Intl.NumberFormat('es-DO', {
       style: 'currency',
       currency: 'DOP',
       maximumFractionDigits: 2,
     }).format(Number(precio) || 0);
   };
+  const obtenerCodigoProducto = (producto) => {
+  const nombre = String(producto?.nombre || '');
+  const coincidencia = nombre.match(/(\d+)\s*$/);
+
+  return coincidencia ? coincidencia[1] : String(producto?.id_producto || '');
+};
+
+const obtenerNombreBaseProducto = (producto) => {
+  return String(producto?.nombre || '').replace(/\s+\d+\s*$/, '').trim();
+};
 
   const getCategoria = (id) => {
     if (String(id) === '1') return 'Caballeros';
@@ -2262,15 +2330,16 @@ setMensaje('Venta realizada correctamente desde el carrito');
             );
           }}
         >
-          <div className="client-result-name">
-            {producto.nombre}
-          </div>
+         <div className="client-result-name">
+  {obtenerNombreBaseProducto(producto)}
+</div>
 
           <div className="client-result-meta">
-            ID: {producto.id_producto}
-            {producto.marca ? ` · ${producto.marca}` : ''}
-            {producto.precio ? ` · ${formatPrecio(producto.precio)}` : ''}
-          </div>
+  Código: {obtenerCodigoProducto(producto)}
+  {' · '}ID BD: {producto.id_producto}
+  {producto.marca ? ` · ${producto.marca}` : ''}
+  {producto.precio ? ` · ${formatPrecio(producto.precio)}` : ''}
+</div>
         </button>
       ))
     )}
