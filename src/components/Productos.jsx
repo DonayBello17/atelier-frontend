@@ -1966,20 +1966,20 @@ setMensaje('Venta realizada correctamente desde el carrito');
               {puedeGestionarInventario && (
                 <div className="actions-row">
                   <button
-                    type="button"
-                    className="btn-gold"
-                    onClick={exportarExcel}
-                  >
-                    Exportar Excel
-                  </button>
+  type="button"
+  className="btn-gold"
+  onClick={exportarExcel}
+>
+  Exportar
+</button>
 
-                  <button
-                    type="button"
-                    className="btn-dark"
-                    onClick={() => excelInputRef.current?.click()}
-                  >
-                    Importar Excel
-                  </button>
+<button
+  type="button"
+  className="btn-dark"
+  onClick={() => excelInputRef.current?.click()}
+>
+  Importar
+</button>
 
                   <input
                     ref={excelInputRef}
