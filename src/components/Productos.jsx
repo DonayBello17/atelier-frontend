@@ -66,6 +66,18 @@ const getImagenProducto = (producto) => {
   return url;
 };
 
+const obtenerCodigoProducto = (producto) => {
+  const nombre = String(producto?.nombre || '');
+  const coincidencia = nombre.match(/(\d+)\s*$/);
+
+  return coincidencia ? coincidencia[1] : String(producto?.id_producto || '');
+};
+
+const obtenerNombreBaseProducto = (producto) => {
+  return String(producto?.nombre || '').replace(/\s+\d+\s*$/, '').trim();
+};
+
+
 export default function Productos({ usuario, onRequireLogin }) {
   const fileInputRef = useRef(null);
   const excelInputRef = useRef(null);
@@ -105,11 +117,11 @@ export default function Productos({ usuario, onRequireLogin }) {
   const [mensaje, setMensaje] = useState('');
   const [confirmarCompra, setConfirmarCompra] = useState(false);
 
-const [busquedaInventario, setBusquedaInventario] = useState('');
-const [busquedaProductoInventario, setBusquedaProductoInventario] = useState('');
-const [paginaInventario, setPaginaInventario] = useState(1);
-const registrosInventarioPorPagina = 8;
-const [editandoInventario, setEditandoInventario] = useState(null);
+  const [busquedaInventario, setBusquedaInventario] = useState('');
+  const [busquedaProductoInventario, setBusquedaProductoInventario] = useState('');
+  const [paginaInventario, setPaginaInventario] = useState(1);
+  const registrosInventarioPorPagina = 8;
+  const [editandoInventario, setEditandoInventario] = useState(null);
   const [formInventario, setFormInventario] = useState({
     id_producto: '',
     id_talla: '',
@@ -326,86 +338,78 @@ const [editandoInventario, setEditandoInventario] = useState(null);
       return texto.includes(textoBusqueda);
     });
   }, [inventario, busquedaInventario]);
+
   const productosInventarioCoincidentes = useMemo(() => {
-  const texto = busquedaProductoInventario.toLowerCase().trim();
+    const texto = busquedaProductoInventario.toLowerCase().trim();
 
-  if (!texto) {
-    return productos.slice(0, 20);
-  }
-
-  const esCodigo = /^\d+$/.test(texto);
-
-  const filtrados = productos.filter((producto) => {
-    const codigoProducto = obtenerCodigoProducto(producto).toLowerCase();
-
-    const nombre = String(producto.nombre || '').toLowerCase();
-    const marca = String(producto.marca || '').toLowerCase();
-    const idBD = String(producto.id_producto || '').toLowerCase();
-
-    if (esCodigo) {
-      return codigoProducto === texto || idBD === texto;
+    if (!texto) {
+      return productos.slice(0, 20);
     }
 
-    return (
-      nombre.includes(texto) ||
-      marca.includes(texto) ||
-      idBD.includes(texto) ||
-      codigoProducto.includes(texto)
-    );
-  });
+    const esCodigo = /^\d+$/.test(texto);
 
-  return filtrados.sort((a, b) => {
-    const codigoA = obtenerCodigoProducto(a).toLowerCase();
-    const codigoB = obtenerCodigoProducto(b).toLowerCase();
+    const filtrados = productos.filter((producto) => {
+      const codigoProducto = obtenerCodigoProducto(producto).toLowerCase();
+      const nombre = String(producto.nombre || '').toLowerCase();
+      const marca = String(producto.marca || '').toLowerCase();
+      const idBD = String(producto.id_producto || '').toLowerCase();
 
-    const exactoA =
-      codigoA === texto || String(a.id_producto) === texto;
+      if (esCodigo) {
+        return codigoProducto === texto || idBD === texto;
+      }
 
-    const exactoB =
-      codigoB === texto || String(b.id_producto) === texto;
+      return (
+        nombre.includes(texto) ||
+        marca.includes(texto) ||
+        idBD.includes(texto) ||
+        codigoProducto.includes(texto)
+      );
+    });
 
-    if (exactoA && !exactoB) return -1;
-    if (!exactoA && exactoB) return 1;
+    return filtrados.sort((a, b) => {
+      const codigoA = obtenerCodigoProducto(a).toLowerCase();
+      const codigoB = obtenerCodigoProducto(b).toLowerCase();
 
-    return Number(b.id_producto || 0) - Number(a.id_producto || 0);
-  });
-}, [productos, busquedaProductoInventario]);
+      const exactoA = codigoA === texto || String(a.id_producto) === texto;
+      const exactoB = codigoB === texto || String(b.id_producto) === texto;
 
-const productosInventarioFiltrados = useMemo(() => {
-  return productosInventarioCoincidentes.slice(0, 20);
-}, [productosInventarioCoincidentes]);
+      if (exactoA && !exactoB) return -1;
+      if (!exactoA && exactoB) return 1;
 
-  
+      return Number(b.id_producto || 0) - Number(a.id_producto || 0);
+    });
+  }, [productos, busquedaProductoInventario]);
 
-const productoSeleccionadoInventario = useMemo(() => {
-  return productos.find((producto) => {
-    return String(producto.id_producto) === String(formInventario.id_producto);
-  });
-}, [productos, formInventario.id_producto]);
+  const productosInventarioFiltrados = useMemo(() => {
+    return productosInventarioCoincidentes.slice(0, 20);
+  }, [productosInventarioCoincidentes]);
 
-
-
+  const productoSeleccionadoInventario = useMemo(() => {
+    return productos.find((producto) => {
+      return String(producto.id_producto) === String(formInventario.id_producto);
+    });
+  }, [productos, formInventario.id_producto]);
 
   const totalPaginasInventario = Math.max(
-  1,
-  Math.ceil(inventarioFiltrado.length / registrosInventarioPorPagina)
-);
+    1,
+    Math.ceil(inventarioFiltrado.length / registrosInventarioPorPagina)
+  );
 
-useEffect(() => {
-  setPaginaInventario(1);
-}, [busquedaInventario]);
+  useEffect(() => {
+    setPaginaInventario(1);
+  }, [busquedaInventario]);
 
-useEffect(() => {
-  if (paginaInventario > totalPaginasInventario) {
-    setPaginaInventario(totalPaginasInventario);
-  }
-}, [paginaInventario, totalPaginasInventario]);
+  useEffect(() => {
+    if (paginaInventario > totalPaginasInventario) {
+      setPaginaInventario(totalPaginasInventario);
+    }
+  }, [paginaInventario, totalPaginasInventario]);
 
-const inventarioPaginado = useMemo(() => {
-  const inicio = (paginaInventario - 1) * registrosInventarioPorPagina;
-  const fin = inicio + registrosInventarioPorPagina;
-  return inventarioFiltrado.slice(inicio, fin);
-}, [inventarioFiltrado, paginaInventario]);
+  const inventarioPaginado = useMemo(() => {
+    const inicio = (paginaInventario - 1) * registrosInventarioPorPagina;
+    const fin = inicio + registrosInventarioPorPagina;
+    return inventarioFiltrado.slice(inicio, fin);
+  }, [inventarioFiltrado, paginaInventario]);
 
   const statsInventario = useMemo(() => {
     const totalUnidades = inventario.reduce((acc, item) => acc + (Number(item.stock) || 0), 0);
@@ -436,16 +440,16 @@ const inventarioPaginado = useMemo(() => {
   };
 
   const limpiarInventario = () => {
-  setEditandoInventario(null);
-  setBusquedaProductoInventario('');
-  setFormInventario({
-    id_producto: '',
-    id_talla: '',
-    color: '',
-    stock: '',
-  });
-  setError('');
-};
+    setEditandoInventario(null);
+    setBusquedaProductoInventario('');
+    setFormInventario({
+      id_producto: '',
+      id_talla: '',
+      color: '',
+      stock: '',
+    });
+    setError('');
+  };
 
   const guardarInventario = async () => {
     if (!formInventario.id_producto || !formInventario.id_talla || formInventario.stock === '') {
@@ -480,17 +484,16 @@ const inventarioPaginado = useMemo(() => {
   };
 
   const editarInventario = (item) => {
-  setEditandoInventario(item.id_inventario);
-  setBusquedaProductoInventario(
-    `${item.producto || ''}${item.marca ? ` - ${item.marca}` : ''}`.trim()
-  );
-
-  setFormInventario({
-    id_producto: item.id_producto || '',
-    id_talla: item.id_talla || '',
-    color: item.color || '',
-    stock: item.stock ?? '',
-  });
+    setEditandoInventario(item.id_inventario);
+    setBusquedaProductoInventario(
+      `${item.producto || ''}${item.marca ? ` - ${item.marca}` : ''}`.trim()
+    );
+    setFormInventario({
+      id_producto: item.id_producto || '',
+      id_talla: item.id_talla || '',
+      color: item.color || '',
+      stock: item.stock ?? '',
+    });
     setError('');
     setMensaje('');
 
@@ -528,60 +531,40 @@ const inventarioPaginado = useMemo(() => {
   }, [carrito]);
 
   const clientesCarritoFiltrados = useMemo(() => {
-  const texto = busquedaClienteCarrito.toLowerCase().trim();
+    const texto = busquedaClienteCarrito.toLowerCase().trim();
 
-  return clientes
-    .filter((cliente) => cliente.estado !== 'inactivo')
-    .filter((cliente) => {
-      if (!texto) return true;
+    return clientes
+      .filter((cliente) => cliente.estado !== 'inactivo')
+      .filter((cliente) => {
+        if (!texto) return true;
 
-      const datos = `
-        ${cliente.nombre || ''}
-        ${cliente.email || ''}
-        ${cliente.telefono || ''}
-        ${cliente.cedula || ''}
-        ${cliente.documento || ''}
-        ${cliente.id_cliente || ''}
-      `.toLowerCase();
+        const datos = `
+          ${cliente.nombre || ''}
+          ${cliente.email || ''}
+          ${cliente.telefono || ''}
+          ${cliente.cedula || ''}
+          ${cliente.documento || ''}
+          ${cliente.id_cliente || ''}
+        `.toLowerCase();
 
-      return datos.includes(texto);
-    })
-    .slice(0, 8);
-}, [clientes, busquedaClienteCarrito]);
+        return datos.includes(texto);
+      })
+      .slice(0, 8);
+  }, [clientes, busquedaClienteCarrito]);
 
-const clienteSeleccionadoCarrito = useMemo(() => {
-  return clientes.find((cliente) => {
-    return String(cliente.id_cliente) === String(clienteCarrito);
-  });
-}, [clientes, clienteCarrito]);
+  const clienteSeleccionadoCarrito = useMemo(() => {
+    return clientes.find((cliente) => {
+      return String(cliente.id_cliente) === String(clienteCarrito);
+    });
+  }, [clientes, clienteCarrito]);
 
   const formatPrecio = (precio) => {
-    const obtenerCodigoProducto = (producto) => {
-  const nombre = String(producto?.nombre || '');
-  const coincidencia = nombre.match(/(\d+)\s*$/);
-
-  return coincidencia ? coincidencia[1] : String(producto?.id_producto || '');
-};
-
-const obtenerNombreBaseProducto = (producto) => {
-  return String(producto?.nombre || '').replace(/\s+\d+\s*$/, '').trim();
-};
     return new Intl.NumberFormat('es-DO', {
       style: 'currency',
       currency: 'DOP',
       maximumFractionDigits: 2,
     }).format(Number(precio) || 0);
   };
-  const obtenerCodigoProducto = (producto) => {
-  const nombre = String(producto?.nombre || '');
-  const coincidencia = nombre.match(/(\d+)\s*$/);
-
-  return coincidencia ? coincidencia[1] : String(producto?.id_producto || '');
-};
-
-const obtenerNombreBaseProducto = (producto) => {
-  return String(producto?.nombre || '').replace(/\s+\d+\s*$/, '').trim();
-};
 
   const getCategoria = (id) => {
     if (String(id) === '1') return 'Caballeros';
@@ -876,11 +859,11 @@ const obtenerNombreBaseProducto = (producto) => {
       });
 
       setCarrito([]);
-setClienteCarrito('');
-setBusquedaClienteCarrito('');
-setMostrarCarrito(false);
-setConfirmarCompra(false);
-setMensaje('Venta realizada correctamente desde el carrito');
+      setClienteCarrito('');
+      setBusquedaClienteCarrito('');
+      setMostrarCarrito(false);
+      setConfirmarCompra(false);
+      setMensaje('Venta realizada correctamente desde el carrito');
 
       await cargar();
     } catch (err) {
@@ -932,24 +915,24 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .products-hero {
-  position: relative;
-  overflow: hidden;
-  min-height: 170px;
-  border-radius: 24px;
-  padding: 22px 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  border: 1px solid rgba(255,255,255,0.10);
-  background:
-    linear-gradient(to right, rgba(0,0,0,0.62), rgba(0,0,0,0.28)),
-    linear-gradient(to top, rgba(0,0,0,0.48), rgba(0,0,0,0.08)),
-    url(${bgImage});
-  background-size: cover;
-  background-position: center top;
-  box-shadow: 0 18px 42px rgba(0,0,0,0.22);
-}
+          position: relative;
+          overflow: hidden;
+          min-height: 300px;
+          border-radius: 30px;
+          padding: 34px;
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 20px;
+          border: 1px solid rgba(255,255,255,0.10);
+          background:
+            linear-gradient(to right, rgba(0,0,0,0.56), rgba(0,0,0,0.25)),
+            linear-gradient(to top, rgba(0,0,0,0.58), rgba(0,0,0,0.10)),
+            url(${bgImage});
+          background-size: cover;
+          background-position: center top;
+          box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+        }
 
         .products-hero::before {
           content: '';
@@ -971,40 +954,40 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .eyebrow {
-  display: inline-flex;
-  width: fit-content;
-  margin-bottom: 10px;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.14);
-  font-size: 11px;
-  letter-spacing: 1.6px;
-  text-transform: uppercase;
-  color: #f6f1e7;
-}
+          display: inline-flex;
+          width: fit-content;
+          margin-bottom: 18px;
+          padding: 10px 16px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.14);
+          font-size: 12px;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          color: #f6f1e7;
+        }
 
         .products-hero h1 {
-  margin: 0 0 8px;
-  font-size: 34px;
-  line-height: 1.05;
-  letter-spacing: -0.6px;
-}
+          margin: 0 0 14px;
+          font-size: 48px;
+          line-height: 1.05;
+          letter-spacing: -1px;
+        }
 
         .products-hero p {
-  margin: 0;
-  max-width: 620px;
-  color: rgba(255,255,255,0.82);
-  font-size: 14px;
-  line-height: 1.5;
-}
+          margin: 0;
+          max-width: 640px;
+          color: rgba(255,255,255,0.82);
+          font-size: 16px;
+          line-height: 1.8;
+        }
 
-       .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 16px;
-}
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 18px;
+          margin-top: 24px;
+        }
 
         .stat-card,
         .glass-card,
@@ -1016,9 +999,9 @@ setMensaje('Venta realizada correctamente desde el carrito');
           border-radius: 24px;
         }
 
-       .stat-card {
-  padding: 16px 18px;
-}
+        .stat-card {
+          padding: 22px;
+        }
 
         .stat-label {
           color: rgba(255,255,255,0.62);
@@ -1028,45 +1011,45 @@ setMensaje('Venta realizada correctamente desde el carrito');
           letter-spacing: 1.4px;
         }
 
-      .stat-value {
-  font-size: 28px;
-  font-weight: 800;
-}
+        .stat-value {
+          font-size: 32px;
+          font-weight: 800;
+        }
 
-       .stat-accent {
-  margin-top: 6px;
-  font-size: 12px;
-  color: #d6b469;
-}
+        .stat-accent {
+          margin-top: 10px;
+          font-size: 13px;
+          color: #d6b469;
+        }
 
         .toolbar {
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 16px;
-  margin-top: 16px;
-}
+          display: grid;
+          grid-template-columns: 1.15fr 0.85fr;
+          gap: 18px;
+          margin-top: 24px;
+        }
 
         .glass-card {
-  padding: 18px;
-}
+          padding: 24px;
+        }
 
         .card-title {
-  margin: 0 0 6px;
-  font-size: 20px;
-}
+          margin: 0 0 8px;
+          font-size: 22px;
+        }
 
-     .card-subtitle {
-  margin: 0 0 14px;
-  color: rgba(255,255,255,0.62);
-  font-size: 13px;
-  line-height: 1.5;
-}
+        .card-subtitle {
+          margin: 0 0 20px;
+          color: rgba(255,255,255,0.62);
+          font-size: 14px;
+          line-height: 1.7;
+        }
 
         .form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
+        }
 
         .field {
           display: flex;
@@ -1081,17 +1064,17 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .premium-input,
-.premium-select {
-  width: 100%;
-  min-height: 46px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
-  color: white;
-  outline: none;
-  padding: 0 14px;
-  font-size: 13px;
-}
+        .premium-select {
+          width: 100%;
+          min-height: 54px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.04);
+          color: white;
+          outline: none;
+          padding: 0 16px;
+          font-size: 14px;
+        }
 
         .premium-select option {
           background: #111214;
@@ -1099,85 +1082,85 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .client-results {
-  margin-top: 10px;
-  display: grid;
-  gap: 8px;
-  max-height: 190px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
+          margin-top: 10px;
+          display: grid;
+          gap: 8px;
+          max-height: 190px;
+          overflow-y: auto;
+          padding-right: 4px;
+        }
 
-.client-result-btn {
-  width: 100%;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.045);
-  color: white;
-  border-radius: 14px;
-  padding: 12px 14px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.22s ease;
-}
+        .client-result-btn {
+          width: 100%;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(255,255,255,0.045);
+          color: white;
+          border-radius: 14px;
+          padding: 12px 14px;
+          text-align: left;
+          cursor: pointer;
+          transition: all 0.22s ease;
+        }
 
-.client-result-btn:hover,
-.client-result-btn.active {
-  background: rgba(214,180,105,0.16);
-  border-color: rgba(214,180,105,0.38);
-}
+        .client-result-btn:hover,
+        .client-result-btn.active {
+          background: rgba(214,180,105,0.16);
+          border-color: rgba(214,180,105,0.38);
+        }
 
-.client-result-name {
-  font-weight: 900;
-  margin-bottom: 4px;
-}
+        .client-result-name {
+          font-weight: 900;
+          margin-bottom: 4px;
+        }
 
-.client-result-meta {
-  color: rgba(255,255,255,0.58);
-  font-size: 12px;
-}
+        .client-result-meta {
+          color: rgba(255,255,255,0.58);
+          font-size: 12px;
+        }
 
-.client-selected {
-  margin-top: 10px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(34,197,94,0.10);
-  border: 1px solid rgba(34,197,94,0.24);
-  color: #86efac;
-  font-size: 13px;
-}
+        .client-selected {
+          margin-top: 10px;
+          padding: 12px 14px;
+          border-radius: 14px;
+          background: rgba(34,197,94,0.10);
+          border: 1px solid rgba(34,197,94,0.24);
+          color: #86efac;
+          font-size: 13px;
+        }
 
         .photo-box {
-  margin-top: 12px;
-  min-height: 140px;
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px dashed rgba(214,180,105,0.35);
-  background:
-    radial-gradient(circle at top right, rgba(214,180,105,0.10), transparent 28%),
-    rgba(255,255,255,0.025);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
+          margin-top: 18px;
+          min-height: 220px;
+          border-radius: 22px;
+          overflow: hidden;
+          border: 1px dashed rgba(214,180,105,0.35);
+          background:
+            radial-gradient(circle at top right, rgba(214,180,105,0.10), transparent 28%),
+            rgba(255,255,255,0.025);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+        }
 
         .photo-box img {
-  width: 100%;
-  height: 170px;
-  object-fit: cover;
-  display: block;
-}
+          width: 100%;
+          height: 260px;
+          object-fit: cover;
+          display: block;
+        }
 
         .photo-empty {
           padding: 24px;
         }
 
         .photo-empty-title {
-  color: #d6b469;
-  font-family: Georgia, 'Times New Roman', serif;
-  letter-spacing: 1.6px;
-  font-size: 22px;
-  margin-bottom: 6px;
-}
+          color: #d6b469;
+          font-family: Georgia, 'Times New Roman', serif;
+          letter-spacing: 2px;
+          font-size: 28px;
+          margin-bottom: 10px;
+        }
 
         .photo-empty-text {
           color: rgba(255,255,255,0.68);
@@ -1287,22 +1270,22 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
-  gap: 14px;
-  margin-top: 18px;
-}
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+          gap: 18px;
+          margin-top: 24px;
+        }
 
         .product-card {
           overflow: hidden;
         }
 
         .product-image {
-  position: relative;
-  height: 220px;
-  background: #141519;
-  overflow: hidden;
-}
+          position: relative;
+          height: 280px;
+          background: #141519;
+          overflow: hidden;
+        }
 
         .product-image img {
           width: 100%;
@@ -1332,8 +1315,8 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .product-info {
-  padding: 14px;
-}
+          padding: 18px;
+        }
 
         .product-brand {
           color: #d6b469;
@@ -1344,16 +1327,16 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .product-name {
-  margin: 0 0 8px;
-  font-size: 18px;
-  line-height: 1.2;
-}
+          margin: 0 0 10px;
+          font-size: 22px;
+          line-height: 1.2;
+        }
 
-       .product-price {
-  font-size: 22px;
-  font-weight: 900;
-  margin-bottom: 10px;
-}
+        .product-price {
+          font-size: 26px;
+          font-weight: 900;
+          margin-bottom: 16px;
+        }
 
         .product-availability {
           margin-top: -6px;
@@ -1475,21 +1458,21 @@ setMensaje('Venta realizada correctamente desde el carrito');
           background: rgba(255,255,255,0.045);
         }
 
-       .inventory-table th {
-  text-align: left;
-  padding: 12px 14px;
-  color: rgba(255,255,255,0.64);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
+        .inventory-table th {
+          text-align: left;
+          padding: 18px;
+          color: rgba(255,255,255,0.64);
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 1.4px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
 
         .inventory-table td {
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-  vertical-align: middle;
-}
+          padding: 18px;
+          border-bottom: 1px solid rgba(255,255,255,0.07);
+          vertical-align: middle;
+        }
 
         .inventory-product-name {
           font-weight: 900;
@@ -1535,10 +1518,10 @@ setMensaje('Venta realizada correctamente desde el carrito');
         }
 
         .stock-number {
-  color: #f2eee7;
-  font-size: 17px;
-  font-weight: 900;
-}
+          color: #f2eee7;
+          font-size: 20px;
+          font-weight: 900;
+        }
 
         .row-actions {
           display: flex;
@@ -1751,16 +1734,16 @@ setMensaje('Venta realizada correctamente desde el carrito');
             padding: 16px;
           }
 
-         .products-hero {
-  min-height: 170px;
-  padding: 18px;
-  flex-direction: column;
-  align-items: flex-start;
-}
+          .products-hero {
+            min-height: 280px;
+            padding: 22px;
+            flex-direction: column;
+            align-items: flex-start;
+          }
 
-.products-hero h1 {
-  font-size: 28px;
-}
+          .products-hero h1 {
+            font-size: 36px;
+          }
 
           .stats-grid,
           .form-grid,
@@ -2074,20 +2057,20 @@ setMensaje('Venta realizada correctamente desde el carrito');
               {puedeGestionarInventario && (
                 <div className="actions-row">
                   <button
-  type="button"
-  className="btn-gold"
-  onClick={exportarExcel}
->
-  Exportar
-</button>
+                    type="button"
+                    className="btn-gold"
+                    onClick={exportarExcel}
+                  >
+                    Exportar
+                  </button>
 
-<button
-  type="button"
-  className="btn-dark"
-  onClick={() => excelInputRef.current?.click()}
->
-  Importar
-</button>
+                  <button
+                    type="button"
+                    className="btn-dark"
+                    onClick={() => excelInputRef.current?.click()}
+                  >
+                    Importar
+                  </button>
 
                   <input
                     ref={excelInputRef}
@@ -2119,14 +2102,14 @@ setMensaje('Venta realizada correctamente desde el carrito');
                   <article key={p.id_producto} className="product-card">
                     <div className="product-image">
                       <img
-  src={getImagenProducto(p)}
-  alt={p.nombre}
-  loading="lazy"
-  decoding="async"
-  onError={(e) => {
-    e.currentTarget.src = PLACEHOLDER;
-  }}
-/>
+                        src={getImagenProducto(p)}
+                        alt={p.nombre}
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => {
+                          e.currentTarget.src = PLACEHOLDER;
+                        }}
+                      />
 
                       <div className="category-badge">
                         {getCategoria(p.id_categoria)}
@@ -2263,72 +2246,72 @@ setMensaje('Venta realizada correctamente desde el carrito');
                   </p>
 
                   <div className="form-grid">
-                   <div className="field">
-  <label>Buscar producto</label>
+                    <div className="field">
+                      <label>Buscar producto</label>
 
-  <input
-    className="premium-input"
-    placeholder="Escribe nombre, marca o ID..."
-    value={busquedaProductoInventario}
-    onChange={(e) => {
-      setBusquedaProductoInventario(e.target.value);
-      setFormInventario({ ...formInventario, id_producto: '' });
-    }}
-  />
+                      <input
+                        className="premium-input"
+                        placeholder="Escribe código exacto, nombre, marca o ID..."
+                        value={busquedaProductoInventario}
+                        onChange={(e) => {
+                          setBusquedaProductoInventario(e.target.value);
+                          setFormInventario({ ...formInventario, id_producto: '' });
+                        }}
+                      />
 
-  {productoSeleccionadoInventario && (
-    <div className="client-selected">
-      Producto seleccionado:{' '}
-      <strong>
-        {productoSeleccionadoInventario.nombre}
-        {productoSeleccionadoInventario.marca
-          ? ` - ${productoSeleccionadoInventario.marca}`
-          : ''}
-      </strong>
-    </div>
-  )}
+                      {productoSeleccionadoInventario && (
+                        <div className="client-selected">
+                          Producto seleccionado:{' '}
+                          <strong>
+                            {productoSeleccionadoInventario.nombre}
+                            {productoSeleccionadoInventario.marca
+                              ? ` - ${productoSeleccionadoInventario.marca}`
+                              : ''}
+                          </strong>
+                        </div>
+                      )}
 
-  <div className="client-results">
-    {productosInventarioFiltrados.length === 0 ? (
-      <div className="empty-box" style={{ marginTop: 0, padding: 18 }}>
-        No se encontró ningún producto.
-      </div>
-    ) : (
-      productosInventarioFiltrados.map((producto) => (
-        <button
-          type="button"
-          key={producto.id_producto}
-          className={`client-result-btn ${
-            String(formInventario.id_producto) === String(producto.id_producto)
-              ? 'active'
-              : ''
-          }`}
-          onClick={() => {
-            setFormInventario({
-              ...formInventario,
-              id_producto: producto.id_producto,
-            });
+                      <div className="client-results">
+                        {productosInventarioFiltrados.length === 0 ? (
+                          <div className="empty-box" style={{ marginTop: 0, padding: 18 }}>
+                            No se encontró ningún producto.
+                          </div>
+                        ) : (
+                          productosInventarioFiltrados.map((producto) => (
+                            <button
+                              type="button"
+                              key={producto.id_producto}
+                              className={`client-result-btn ${
+                                String(formInventario.id_producto) === String(producto.id_producto)
+                                  ? 'active'
+                                  : ''
+                              }`}
+                              onClick={() => {
+                                setFormInventario({
+                                  ...formInventario,
+                                  id_producto: producto.id_producto,
+                                });
 
-            setBusquedaProductoInventario(
-              `${producto.nombre || ''}${producto.marca ? ` - ${producto.marca}` : ''}`
-            );
-          }}
-        >
-         <div className="client-result-name">
-  {obtenerNombreBaseProducto(producto)}
-</div>
+                                setBusquedaProductoInventario(
+                                  `${producto.nombre || ''}${producto.marca ? ` - ${producto.marca}` : ''}`
+                                );
+                              }}
+                            >
+                              <div className="client-result-name">
+                                {obtenerNombreBaseProducto(producto)}
+                              </div>
 
-          <div className="client-result-meta">
-  Código: {obtenerCodigoProducto(producto)}
-  {' · '}ID BD: {producto.id_producto}
-  {producto.marca ? ` · ${producto.marca}` : ''}
-  {producto.precio ? ` · ${formatPrecio(producto.precio)}` : ''}
-</div>
-        </button>
-      ))
-    )}
-  </div>
-</div>
+                              <div className="client-result-meta">
+                                Código: {obtenerCodigoProducto(producto)}
+                                {' · '}ID BD: {producto.id_producto}
+                                {producto.marca ? ` · ${producto.marca}` : ''}
+                                {producto.precio ? ` · ${formatPrecio(producto.precio)}` : ''}
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
 
                     <div className="field">
                       <label>Talla</label>
@@ -2404,9 +2387,9 @@ setMensaje('Venta realizada correctamente desde el carrito');
                   </div>
 
                   <div className="search-meta">
-  Mostrando {inventarioPaginado.length} de {inventarioFiltrado.length} registros filtrados.
-  Total inventario: {inventario.length}.
-</div>
+                    Mostrando {inventarioPaginado.length} de {inventarioFiltrado.length} registros filtrados.
+                    Total inventario: {inventario.length}.
+                  </div>
                 </div>
               </section>
 
@@ -2480,7 +2463,7 @@ setMensaje('Venta realizada correctamente desde el carrito');
                           );
                         })}
                       </tbody>
-                                      </table>
+                    </table>
                   </div>
 
                   {inventarioFiltrado.length > registrosInventarioPorPagina && (
@@ -2499,11 +2482,7 @@ setMensaje('Venta realizada correctamente desde el carrito');
 
                       <button
                         className="btn-dark"
-                        onClick={() =>
-                          setPaginaInventario((prev) =>
-                            Math.min(totalPaginasInventario, prev + 1)
-                          )
-                        }
+                        onClick={() => setPaginaInventario((prev) => Math.min(totalPaginasInventario, prev + 1))}
                         disabled={paginaInventario === totalPaginasInventario}
                       >
                         Siguiente
@@ -2550,15 +2529,13 @@ setMensaje('Venta realizada correctamente desde el carrito');
 
                 <div className="cart-item">
                   <div className="cart-img">
-                   <img
-  src={getImagenProducto(productoModal)}
-  alt={productoModal.nombre}
-  loading="lazy"
-  decoding="async"
-  onError={(e) => {
-    e.currentTarget.src = PLACEHOLDER;
-  }}
-/>
+                    <img
+                      src={getImagenProducto(productoModal)}
+                      alt={productoModal.nombre}
+                      onError={(e) => {
+                        e.currentTarget.src = PLACEHOLDER;
+                      }}
+                    />
                   </div>
 
                   <div>
@@ -2616,58 +2593,58 @@ setMensaje('Venta realizada correctamente desde el carrito');
                 </div>
 
                 {usuario?.rol !== 'cliente' && (
-  <div className="field">
-    <label>Buscar cliente</label>
+                  <div className="field">
+                    <label>Buscar cliente</label>
 
-    <input
-      className="premium-input"
-      placeholder="Escribe nombre, correo, documento o ID..."
-      value={busquedaClienteCarrito}
-      onChange={(e) => {
-        setBusquedaClienteCarrito(e.target.value);
-        setClienteCarrito('');
-      }}
-    />
+                    <input
+                      className="premium-input"
+                      placeholder="Escribe nombre, correo, documento o ID..."
+                      value={busquedaClienteCarrito}
+                      onChange={(e) => {
+                        setBusquedaClienteCarrito(e.target.value);
+                        setClienteCarrito('');
+                      }}
+                    />
 
-    {clienteSeleccionadoCarrito && (
-      <div className="client-selected">
-        Cliente seleccionado: <strong>{clienteSeleccionadoCarrito.nombre}</strong>
-      </div>
-    )}
+                    {clienteSeleccionadoCarrito && (
+                      <div className="client-selected">
+                        Cliente seleccionado: <strong>{clienteSeleccionadoCarrito.nombre}</strong>
+                      </div>
+                    )}
 
-    <div className="client-results">
-      {clientesCarritoFiltrados.length === 0 ? (
-        <div className="empty-box" style={{ marginTop: 0, padding: 18 }}>
-          No se encontró ningún cliente.
-        </div>
-      ) : (
-        clientesCarritoFiltrados.map((cliente) => (
-          <button
-            type="button"
-            key={cliente.id_cliente}
-            className={`client-result-btn ${
-              String(clienteCarrito) === String(cliente.id_cliente) ? 'active' : ''
-            }`}
-            onClick={() => {
-              setClienteCarrito(cliente.id_cliente);
-              setBusquedaClienteCarrito(cliente.nombre || '');
-            }}
-          >
-            <div className="client-result-name">
-              {cliente.nombre}
-            </div>
+                    <div className="client-results">
+                      {clientesCarritoFiltrados.length === 0 ? (
+                        <div className="empty-box" style={{ marginTop: 0, padding: 18 }}>
+                          No se encontró ningún cliente.
+                        </div>
+                      ) : (
+                        clientesCarritoFiltrados.map((cliente) => (
+                          <button
+                            type="button"
+                            key={cliente.id_cliente}
+                            className={`client-result-btn ${
+                              String(clienteCarrito) === String(cliente.id_cliente) ? 'active' : ''
+                            }`}
+                            onClick={() => {
+                              setClienteCarrito(cliente.id_cliente);
+                              setBusquedaClienteCarrito(cliente.nombre || '');
+                            }}
+                          >
+                            <div className="client-result-name">
+                              {cliente.nombre}
+                            </div>
 
-            <div className="client-result-meta">
-              ID: {cliente.id_cliente}
-              {cliente.email ? ` · ${cliente.email}` : ''}
-              {cliente.telefono ? ` · ${cliente.telefono}` : ''}
-            </div>
-          </button>
-        ))
-      )}
-    </div>
-  </div>
-)}
+                            <div className="client-result-meta">
+                              ID: {cliente.id_cliente}
+                              {cliente.email ? ` · ${cliente.email}` : ''}
+                              {cliente.telefono ? ` · ${cliente.telefono}` : ''}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {usuario?.rol === 'cliente' && (
                   <div className="success-box">
@@ -2684,15 +2661,15 @@ setMensaje('Venta realizada correctamente desde el carrito');
                     {carrito.map((item) => (
                       <div className="cart-item" key={item.id_inventario}>
                         <div className="cart-img">
-                         <img
-  src={item.imagen_url || PLACEHOLDER}
-  alt={item.producto}
-  loading="lazy"
-  decoding="async"
-  onError={(e) => {
-    e.currentTarget.src = PLACEHOLDER;
-  }}
-/>
+                          <img
+                            src={item.imagen_url || PLACEHOLDER}
+                            alt={item.producto}
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                              e.currentTarget.src = PLACEHOLDER;
+                            }}
+                          />
                         </div>
 
                         <div>
