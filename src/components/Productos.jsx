@@ -2034,12 +2034,14 @@ setMensaje('Venta realizada correctamente desde el carrito');
                   <article key={p.id_producto} className="product-card">
                     <div className="product-image">
                       <img
-                        src={getImagenProducto(p)}
-                        alt={p.nombre}
-                        onError={(e) => {
-                          e.currentTarget.src = PLACEHOLDER;
-                        }}
-                      />
+  src={getImagenProducto(p)}
+  alt={p.nombre}
+  loading="lazy"
+  decoding="async"
+  onError={(e) => {
+    e.currentTarget.src = PLACEHOLDER;
+  }}
+/>
 
                       <div className="category-badge">
                         {getCategoria(p.id_categoria)}
@@ -2412,13 +2414,15 @@ setMensaje('Venta realizada correctamente desde el carrito');
 
                 <div className="cart-item">
                   <div className="cart-img">
-                    <img
-                      src={getImagenProducto(productoModal)}
-                      alt={productoModal.nombre}
-                      onError={(e) => {
-                        e.currentTarget.src = PLACEHOLDER;
-                      }}
-                    />
+                   <img
+  src={getImagenProducto(productoModal)}
+  alt={productoModal.nombre}
+  loading="lazy"
+  decoding="async"
+  onError={(e) => {
+    e.currentTarget.src = PLACEHOLDER;
+  }}
+/>
                   </div>
 
                   <div>
@@ -2544,13 +2548,15 @@ setMensaje('Venta realizada correctamente desde el carrito');
                     {carrito.map((item) => (
                       <div className="cart-item" key={item.id_inventario}>
                         <div className="cart-img">
-                          <img
-                            src={item.imagen_url || PLACEHOLDER}
-                            alt={item.producto}
-                            onError={(e) => {
-                              e.currentTarget.src = PLACEHOLDER;
-                            }}
-                          />
+                         <img
+  src={item.imagen_url || PLACEHOLDER}
+  alt={item.producto}
+  loading="lazy"
+  decoding="async"
+  onError={(e) => {
+    e.currentTarget.src = PLACEHOLDER;
+  }}
+/>
                         </div>
 
                         <div>
