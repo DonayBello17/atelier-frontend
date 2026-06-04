@@ -375,23 +375,7 @@ const productosInventarioFiltrados = useMemo(() => {
   return productosInventarioCoincidentes.slice(0, 20);
 }, [productosInventarioCoincidentes]);
 
-  const productosInventarioFiltrados = useMemo(() => {
-  const texto = busquedaProductoInventario.toLowerCase().trim();
-
-  return productos
-    .filter((producto) => {
-      if (!texto) return true;
-
-      const datos = `
-        ${producto.id_producto || ''}
-        ${producto.nombre || ''}
-        ${producto.marca || ''}
-      `.toLowerCase();
-
-      return datos.includes(texto);
-    })
-    .slice(0, 8);
-}, [productos, busquedaProductoInventario]);
+  
 
 const productoSeleccionadoInventario = useMemo(() => {
   return productos.find((producto) => {
