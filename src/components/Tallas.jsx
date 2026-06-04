@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../api/api';
-import bgImage from '../assets/login-bg.jpg';
+
 
 export default function Tallas({ usuario }) {
   const [tallas, setTallas] = useState([]);
@@ -135,7 +135,7 @@ export default function Tallas({ usuario }) {
           margin: 0 auto;
         }
 
-      .hero {
+   .hero {
   position: relative;
   overflow: hidden;
   min-height: 150px;
@@ -145,11 +145,8 @@ export default function Tallas({ usuario }) {
   align-items: center;
   border: 1px solid rgba(255,255,255,0.10);
   background:
-    linear-gradient(to right, rgba(0,0,0,0.62), rgba(0,0,0,0.28)),
-    linear-gradient(to top, rgba(0,0,0,0.48), rgba(0,0,0,0.08)),
-    url(${bgImage});
-  background-size: cover;
-  background-position: center;
+    radial-gradient(circle at top right, rgba(214,180,105,0.12), transparent 26%),
+    linear-gradient(135deg, #08090b 0%, #141519 48%, #090a0c 100%);
   box-shadow: 0 18px 42px rgba(0,0,0,0.22);
 }
 
