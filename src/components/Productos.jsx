@@ -66,21 +66,8 @@ const getImagenProducto = (producto) => {
   return url;
 };
 
-const obtenerCodigoProducto = (producto) => {
-  const nombre = String(producto?.nombre || '');
-  const coincidencia = nombre.match(/(\d+)\s*$/);
-
-  return coincidencia ? coincidencia[1] : String(producto?.id_producto || '');
-};
-
-const obtenerNombreBaseProducto = (producto) => {
-  return String(producto?.nombre || '').replace(/\s+\d+\s*$/, '').trim();
-};
-
-
 export default function Productos({ usuario, onRequireLogin }) {
   const fileInputRef = useRef(null);
-  const excelInputRef = useRef(null);
 
   const [productos, setProductos] = useState([]);
   const [inventario, setInventario] = useState([]);
@@ -108,7 +95,6 @@ export default function Productos({ usuario, onRequireLogin }) {
 
   const [carrito, setCarrito] = useState([]);
   const [clienteCarrito, setClienteCarrito] = useState('');
-  const [busquedaClienteCarrito, setBusquedaClienteCarrito] = useState('');
   const [productoModal, setProductoModal] = useState(null);
   const [idInventarioModal, setIdInventarioModal] = useState('');
   const [cantidadModal, setCantidadModal] = useState(1);
@@ -118,9 +104,6 @@ export default function Productos({ usuario, onRequireLogin }) {
   const [confirmarCompra, setConfirmarCompra] = useState(false);
 
   const [busquedaInventario, setBusquedaInventario] = useState('');
-  const [busquedaProductoInventario, setBusquedaProductoInventario] = useState('');
-  const [paginaInventario, setPaginaInventario] = useState(1);
-  const registrosInventarioPorPagina = 8;
   const [editandoInventario, setEditandoInventario] = useState(null);
   const [formInventario, setFormInventario] = useState({
     id_producto: '',
@@ -183,68 +166,7 @@ export default function Productos({ usuario, onRequireLogin }) {
       setLoading(false);
     }
   };
-  const exportarExcel = async () => {
-    try {
-      setError('');
-      setMensaje('');
 
-      const response = await api.get('/productos/exportar-excel', {
-        responseType: 'blob',
-      });
-
-      const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
-
-      const url = window.URL.createObjectURL(blob);
-      const enlace = document.createElement('a');
-
-      enlace.href = url;
-      enlace.download = 'catalogo_atelier.xlsx';
-      document.body.appendChild(enlace);
-      enlace.click();
-      enlace.remove();
-
-      window.URL.revokeObjectURL(url);
-
-      setMensaje('Excel exportado correctamente');
-    } catch (err) {
-      console.error('Error exportando Excel:', err);
-      setError('No se pudo exportar el Excel');
-    }
-  };
-
-  const importarExcel = async (file) => {
-    if (!file) return;
-
-    try {
-      setError('');
-      setMensaje('');
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await api.post('/productos/importar-excel', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      setMensaje(response.data?.message || 'Importación completada correctamente');
-
-      if (excelInputRef.current) {
-        excelInputRef.current.value = '';
-      }
-
-      await cargar();
-    } catch (err) {
-      console.error('Error importando Excel:', err);
-      setError(err.response?.data?.message || 'No se pudo importar el Excel');
-    }
-  };
-
-
-  
   useEffect(() => {
     cargar();
   }, []);
@@ -339,78 +261,6 @@ export default function Productos({ usuario, onRequireLogin }) {
     });
   }, [inventario, busquedaInventario]);
 
-  const productosInventarioCoincidentes = useMemo(() => {
-    const texto = busquedaProductoInventario.toLowerCase().trim();
-
-    if (!texto) {
-      return productos.slice(0, 20);
-    }
-
-    const esCodigo = /^\d+$/.test(texto);
-
-    const filtrados = productos.filter((producto) => {
-      const codigoProducto = obtenerCodigoProducto(producto).toLowerCase();
-      const nombre = String(producto.nombre || '').toLowerCase();
-      const marca = String(producto.marca || '').toLowerCase();
-      const idBD = String(producto.id_producto || '').toLowerCase();
-
-      if (esCodigo) {
-        return codigoProducto === texto || idBD === texto;
-      }
-
-      return (
-        nombre.includes(texto) ||
-        marca.includes(texto) ||
-        idBD.includes(texto) ||
-        codigoProducto.includes(texto)
-      );
-    });
-
-    return filtrados.sort((a, b) => {
-      const codigoA = obtenerCodigoProducto(a).toLowerCase();
-      const codigoB = obtenerCodigoProducto(b).toLowerCase();
-
-      const exactoA = codigoA === texto || String(a.id_producto) === texto;
-      const exactoB = codigoB === texto || String(b.id_producto) === texto;
-
-      if (exactoA && !exactoB) return -1;
-      if (!exactoA && exactoB) return 1;
-
-      return Number(b.id_producto || 0) - Number(a.id_producto || 0);
-    });
-  }, [productos, busquedaProductoInventario]);
-
-  const productosInventarioFiltrados = useMemo(() => {
-    return productosInventarioCoincidentes.slice(0, 20);
-  }, [productosInventarioCoincidentes]);
-
-  const productoSeleccionadoInventario = useMemo(() => {
-    return productos.find((producto) => {
-      return String(producto.id_producto) === String(formInventario.id_producto);
-    });
-  }, [productos, formInventario.id_producto]);
-
-  const totalPaginasInventario = Math.max(
-    1,
-    Math.ceil(inventarioFiltrado.length / registrosInventarioPorPagina)
-  );
-
-  useEffect(() => {
-    setPaginaInventario(1);
-  }, [busquedaInventario]);
-
-  useEffect(() => {
-    if (paginaInventario > totalPaginasInventario) {
-      setPaginaInventario(totalPaginasInventario);
-    }
-  }, [paginaInventario, totalPaginasInventario]);
-
-  const inventarioPaginado = useMemo(() => {
-    const inicio = (paginaInventario - 1) * registrosInventarioPorPagina;
-    const fin = inicio + registrosInventarioPorPagina;
-    return inventarioFiltrado.slice(inicio, fin);
-  }, [inventarioFiltrado, paginaInventario]);
-
   const statsInventario = useMemo(() => {
     const totalUnidades = inventario.reduce((acc, item) => acc + (Number(item.stock) || 0), 0);
     const agotados = inventario.filter((item) => Number(item.stock) <= 0).length;
@@ -441,7 +291,6 @@ export default function Productos({ usuario, onRequireLogin }) {
 
   const limpiarInventario = () => {
     setEditandoInventario(null);
-    setBusquedaProductoInventario('');
     setFormInventario({
       id_producto: '',
       id_talla: '',
@@ -452,8 +301,15 @@ export default function Productos({ usuario, onRequireLogin }) {
   };
 
   const guardarInventario = async () => {
+    const stockInventario = Number(formInventario.stock);
+
     if (!formInventario.id_producto || !formInventario.id_talla || formInventario.stock === '') {
       setError('Selecciona producto, talla y stock');
+      return;
+    }
+
+    if (Number.isNaN(stockInventario) || stockInventario < 0) {
+      setError('El stock no puede ser negativo');
       return;
     }
 
@@ -465,7 +321,7 @@ export default function Productos({ usuario, onRequireLogin }) {
         id_producto: formInventario.id_producto,
         id_talla: formInventario.id_talla,
         color: formInventario.color,
-        stock: formInventario.stock,
+        stock: stockInventario,
       };
 
       if (editandoInventario) {
@@ -485,9 +341,6 @@ export default function Productos({ usuario, onRequireLogin }) {
 
   const editarInventario = (item) => {
     setEditandoInventario(item.id_inventario);
-    setBusquedaProductoInventario(
-      `${item.producto || ''}${item.marca ? ` - ${item.marca}` : ''}`.trim()
-    );
     setFormInventario({
       id_producto: item.id_producto || '',
       id_talla: item.id_talla || '',
@@ -529,34 +382,6 @@ export default function Productos({ usuario, onRequireLogin }) {
   const carritoUnidades = useMemo(() => {
     return carrito.reduce((acc, item) => acc + (Number(item.cantidad) || 0), 0);
   }, [carrito]);
-
-  const clientesCarritoFiltrados = useMemo(() => {
-    const texto = busquedaClienteCarrito.toLowerCase().trim();
-
-    return clientes
-      .filter((cliente) => cliente.estado !== 'inactivo')
-      .filter((cliente) => {
-        if (!texto) return true;
-
-        const datos = `
-          ${cliente.nombre || ''}
-          ${cliente.email || ''}
-          ${cliente.telefono || ''}
-          ${cliente.cedula || ''}
-          ${cliente.documento || ''}
-          ${cliente.id_cliente || ''}
-        `.toLowerCase();
-
-        return datos.includes(texto);
-      })
-      .slice(0, 8);
-  }, [clientes, busquedaClienteCarrito]);
-
-  const clienteSeleccionadoCarrito = useMemo(() => {
-    return clientes.find((cliente) => {
-      return String(cliente.id_cliente) === String(clienteCarrito);
-    });
-  }, [clientes, clienteCarrito]);
 
   const formatPrecio = (precio) => {
     return new Intl.NumberFormat('es-DO', {
@@ -639,8 +464,15 @@ export default function Productos({ usuario, onRequireLogin }) {
   };
 
   const guardar = async () => {
-    if (!form.nombre || !form.precio || !form.id_categoria) {
-      setError('Completa nombre, precio y categoria');
+    const precioProducto = Number(form.precio);
+
+    if (!form.nombre.trim() || form.precio === '' || !form.id_categoria) {
+      setError('Completa nombre, precio y categoría');
+      return;
+    }
+
+    if (Number.isNaN(precioProducto) || precioProducto <= 0) {
+      setError('El precio del producto debe ser mayor que cero');
       return;
     }
 
@@ -650,7 +482,7 @@ export default function Productos({ usuario, onRequireLogin }) {
       const data = new FormData();
       data.append('nombre', form.nombre);
       data.append('marca', form.marca || '');
-      data.append('precio', form.precio);
+      data.append('precio', precioProducto);
       data.append('id_categoria', form.id_categoria);
       data.append('imagen_url', form.imagen_url || '');
 
@@ -860,7 +692,6 @@ export default function Productos({ usuario, onRequireLogin }) {
 
       setCarrito([]);
       setClienteCarrito('');
-      setBusquedaClienteCarrito('');
       setMostrarCarrito(false);
       setConfirmarCompra(false);
       setMensaje('Venta realizada correctamente desde el carrito');
@@ -913,25 +744,24 @@ export default function Productos({ usuario, onRequireLogin }) {
           max-width: 1400px;
           margin: 0 auto;
         }
-
         .products-hero {
           position: relative;
           overflow: hidden;
-          min-height: 300px;
-          border-radius: 30px;
-          padding: 34px;
+          min-height: 170px;
+          border-radius: 24px;
+          padding: 22px 28px;
           display: flex;
-          align-items: flex-end;
+          align-items: center;
           justify-content: space-between;
-          gap: 20px;
+          gap: 18px;
           border: 1px solid rgba(255,255,255,0.10);
           background:
-            linear-gradient(to right, rgba(0,0,0,0.56), rgba(0,0,0,0.25)),
-            linear-gradient(to top, rgba(0,0,0,0.58), rgba(0,0,0,0.10)),
+            linear-gradient(to right, rgba(0,0,0,0.62), rgba(0,0,0,0.28)),
+            linear-gradient(to top, rgba(0,0,0,0.48), rgba(0,0,0,0.08)),
             url(${bgImage});
           background-size: cover;
           background-position: center top;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+          box-shadow: 0 18px 42px rgba(0,0,0,0.22);
         }
 
         .products-hero::before {
@@ -952,41 +782,37 @@ export default function Productos({ usuario, onRequireLogin }) {
         .hero-content {
           max-width: 720px;
         }
-
         .eyebrow {
           display: inline-flex;
           width: fit-content;
-          margin-bottom: 18px;
-          padding: 10px 16px;
+          margin-bottom: 10px;
+          padding: 7px 12px;
           border-radius: 999px;
           background: rgba(255,255,255,0.08);
           border: 1px solid rgba(255,255,255,0.14);
-          font-size: 12px;
-          letter-spacing: 2px;
+          font-size: 11px;
+          letter-spacing: 1.6px;
           text-transform: uppercase;
           color: #f6f1e7;
         }
-
         .products-hero h1 {
-          margin: 0 0 14px;
-          font-size: 48px;
+          margin: 0 0 8px;
+          font-size: 34px;
           line-height: 1.05;
-          letter-spacing: -1px;
+          letter-spacing: -0.6px;
         }
-
         .products-hero p {
           margin: 0;
-          max-width: 640px;
+          max-width: 620px;
           color: rgba(255,255,255,0.82);
-          font-size: 16px;
-          line-height: 1.8;
+          font-size: 14px;
+          line-height: 1.5;
         }
-
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 18px;
-          margin-top: 24px;
+          gap: 14px;
+          margin-top: 16px;
         }
 
         .stat-card,
@@ -998,9 +824,8 @@ export default function Productos({ usuario, onRequireLogin }) {
           box-shadow: 0 16px 40px rgba(0,0,0,0.18);
           border-radius: 24px;
         }
-
         .stat-card {
-          padding: 22px;
+          padding: 16px 18px;
         }
 
         .stat-label {
@@ -1010,45 +835,38 @@ export default function Productos({ usuario, onRequireLogin }) {
           text-transform: uppercase;
           letter-spacing: 1.4px;
         }
-
         .stat-value {
-          font-size: 32px;
+          font-size: 28px;
           font-weight: 800;
         }
-
         .stat-accent {
-          margin-top: 10px;
-          font-size: 13px;
+          margin-top: 6px;
+          font-size: 12px;
           color: #d6b469;
         }
-
         .toolbar {
           display: grid;
           grid-template-columns: 1.15fr 0.85fr;
-          gap: 18px;
-          margin-top: 24px;
+          gap: 16px;
+          margin-top: 16px;
         }
-
         .glass-card {
-          padding: 24px;
+          padding: 18px;
         }
-
         .card-title {
-          margin: 0 0 8px;
-          font-size: 22px;
+          margin: 0 0 6px;
+          font-size: 20px;
         }
-
         .card-subtitle {
-          margin: 0 0 20px;
+          margin: 0 0 14px;
           color: rgba(255,255,255,0.62);
-          font-size: 14px;
-          line-height: 1.7;
+          font-size: 13px;
+          line-height: 1.5;
         }
-
         .form-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px;
+          gap: 10px;
         }
 
         .field {
@@ -1062,76 +880,27 @@ export default function Productos({ usuario, onRequireLogin }) {
           color: rgba(255,255,255,0.82);
           font-weight: 600;
         }
-
         .premium-input,
         .premium-select {
           width: 100%;
-          min-height: 54px;
-          border-radius: 16px;
+          min-height: 46px;
+          border-radius: 14px;
           border: 1px solid rgba(255,255,255,0.12);
           background: rgba(255,255,255,0.04);
           color: white;
           outline: none;
-          padding: 0 16px;
-          font-size: 14px;
+          padding: 0 14px;
+          font-size: 13px;
         }
 
         .premium-select option {
           background: #111214;
           color: white;
         }
-
-        .client-results {
-          margin-top: 10px;
-          display: grid;
-          gap: 8px;
-          max-height: 190px;
-          overflow-y: auto;
-          padding-right: 4px;
-        }
-
-        .client-result-btn {
-          width: 100%;
-          border: 1px solid rgba(255,255,255,0.10);
-          background: rgba(255,255,255,0.045);
-          color: white;
-          border-radius: 14px;
-          padding: 12px 14px;
-          text-align: left;
-          cursor: pointer;
-          transition: all 0.22s ease;
-        }
-
-        .client-result-btn:hover,
-        .client-result-btn.active {
-          background: rgba(214,180,105,0.16);
-          border-color: rgba(214,180,105,0.38);
-        }
-
-        .client-result-name {
-          font-weight: 900;
-          margin-bottom: 4px;
-        }
-
-        .client-result-meta {
-          color: rgba(255,255,255,0.58);
-          font-size: 12px;
-        }
-
-        .client-selected {
-          margin-top: 10px;
-          padding: 12px 14px;
-          border-radius: 14px;
-          background: rgba(34,197,94,0.10);
-          border: 1px solid rgba(34,197,94,0.24);
-          color: #86efac;
-          font-size: 13px;
-        }
-
         .photo-box {
-          margin-top: 18px;
-          min-height: 220px;
-          border-radius: 22px;
+          margin-top: 12px;
+          min-height: 140px;
+          border-radius: 18px;
           overflow: hidden;
           border: 1px dashed rgba(214,180,105,0.35);
           background:
@@ -1142,10 +911,9 @@ export default function Productos({ usuario, onRequireLogin }) {
           justify-content: center;
           text-align: center;
         }
-
         .photo-box img {
           width: 100%;
-          height: 260px;
+          height: 170px;
           object-fit: cover;
           display: block;
         }
@@ -1153,13 +921,12 @@ export default function Productos({ usuario, onRequireLogin }) {
         .photo-empty {
           padding: 24px;
         }
-
         .photo-empty-title {
           color: #d6b469;
           font-family: Georgia, 'Times New Roman', serif;
-          letter-spacing: 2px;
-          font-size: 28px;
-          margin-bottom: 10px;
+          letter-spacing: 1.6px;
+          font-size: 22px;
+          margin-bottom: 6px;
         }
 
         .photo-empty-text {
@@ -1268,21 +1035,19 @@ export default function Productos({ usuario, onRequireLogin }) {
           border: 1px solid rgba(34,197,94,0.25);
           color: #86efac;
         }
-
         .products-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
-          gap: 18px;
-          margin-top: 24px;
+          grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+          gap: 14px;
+          margin-top: 18px;
         }
 
         .product-card {
           overflow: hidden;
         }
-
         .product-image {
           position: relative;
-          height: 280px;
+          height: 220px;
           background: #141519;
           overflow: hidden;
         }
@@ -1313,9 +1078,8 @@ export default function Productos({ usuario, onRequireLogin }) {
           text-transform: uppercase;
           letter-spacing: 1px;
         }
-
         .product-info {
-          padding: 18px;
+          padding: 14px;
         }
 
         .product-brand {
@@ -1325,17 +1089,15 @@ export default function Productos({ usuario, onRequireLogin }) {
           letter-spacing: 1.5px;
           margin-bottom: 8px;
         }
-
         .product-name {
-          margin: 0 0 10px;
-          font-size: 22px;
+          margin: 0 0 8px;
+          font-size: 18px;
           line-height: 1.2;
         }
-
         .product-price {
-          font-size: 26px;
+          font-size: 22px;
           font-weight: 900;
-          margin-bottom: 16px;
+          margin-bottom: 10px;
         }
 
         .product-availability {
@@ -1457,19 +1219,17 @@ export default function Productos({ usuario, onRequireLogin }) {
         .inventory-table thead {
           background: rgba(255,255,255,0.045);
         }
-
         .inventory-table th {
           text-align: left;
-          padding: 18px;
+          padding: 12px 14px;
           color: rgba(255,255,255,0.64);
-          font-size: 12px;
+          font-size: 11px;
           text-transform: uppercase;
-          letter-spacing: 1.4px;
+          letter-spacing: 1.2px;
           border-bottom: 1px solid rgba(255,255,255,0.08);
         }
-
         .inventory-table td {
-          padding: 18px;
+          padding: 12px 14px;
           border-bottom: 1px solid rgba(255,255,255,0.07);
           vertical-align: middle;
         }
@@ -1516,10 +1276,9 @@ export default function Productos({ usuario, onRequireLogin }) {
           border-color: rgba(220,38,38,0.28);
           background: rgba(220,38,38,0.12);
         }
-
         .stock-number {
           color: #f2eee7;
-          font-size: 20px;
+          font-size: 17px;
           font-weight: 900;
         }
 
@@ -1735,14 +1494,14 @@ export default function Productos({ usuario, onRequireLogin }) {
           }
 
           .products-hero {
-            min-height: 280px;
-            padding: 22px;
+            min-height: 170px;
+            padding: 18px;
             flex-direction: column;
             align-items: flex-start;
           }
 
           .products-hero h1 {
-            font-size: 36px;
+            font-size: 28px;
           }
 
           .stats-grid,
@@ -1892,6 +1651,8 @@ export default function Productos({ usuario, onRequireLogin }) {
                     <input
                       className="premium-input"
                       type="number"
+                      min="1"
+                      step="0.01"
                       placeholder="Ej. 1200"
                       value={form.precio}
                       onChange={(e) => setForm({ ...form, precio: e.target.value })}
@@ -2049,38 +1810,10 @@ export default function Productos({ usuario, onRequireLogin }) {
                 </div>
               </div>
 
-                            <div className="search-meta">
+              <div className="search-meta">
                 Mostrando {productosPaginados.length} de {productosFiltrados.length} productos filtrados.
                 Total catálogo: {productos.length}.
               </div>
-
-              {puedeGestionarInventario && (
-                <div className="actions-row">
-                  <button
-                    type="button"
-                    className="btn-gold"
-                    onClick={exportarExcel}
-                  >
-                    Exportar
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-dark"
-                    onClick={() => excelInputRef.current?.click()}
-                  >
-                    Importar
-                  </button>
-
-                  <input
-                    ref={excelInputRef}
-                    type="file"
-                    accept=".xlsx,.xls"
-                    style={{ display: 'none' }}
-                    onChange={(e) => importarExcel(e.target.files?.[0])}
-                  />
-                </div>
-              )}
 
               {!esAdmin && error && <div className="error-box">{error}</div>}
               {!esAdmin && mensaje && <div className="success-box">{mensaje}</div>}
@@ -2104,8 +1837,6 @@ export default function Productos({ usuario, onRequireLogin }) {
                       <img
                         src={getImagenProducto(p)}
                         alt={p.nombre}
-                        loading="lazy"
-                        decoding="async"
                         onError={(e) => {
                           e.currentTarget.src = PLACEHOLDER;
                         }}
@@ -2247,70 +1978,19 @@ export default function Productos({ usuario, onRequireLogin }) {
 
                   <div className="form-grid">
                     <div className="field">
-                      <label>Buscar producto</label>
-
-                      <input
-                        className="premium-input"
-                        placeholder="Escribe código exacto, nombre, marca o ID..."
-                        value={busquedaProductoInventario}
-                        onChange={(e) => {
-                          setBusquedaProductoInventario(e.target.value);
-                          setFormInventario({ ...formInventario, id_producto: '' });
-                        }}
-                      />
-
-                      {productoSeleccionadoInventario && (
-                        <div className="client-selected">
-                          Producto seleccionado:{' '}
-                          <strong>
-                            {productoSeleccionadoInventario.nombre}
-                            {productoSeleccionadoInventario.marca
-                              ? ` - ${productoSeleccionadoInventario.marca}`
-                              : ''}
-                          </strong>
-                        </div>
-                      )}
-
-                      <div className="client-results">
-                        {productosInventarioFiltrados.length === 0 ? (
-                          <div className="empty-box" style={{ marginTop: 0, padding: 18 }}>
-                            No se encontró ningún producto.
-                          </div>
-                        ) : (
-                          productosInventarioFiltrados.map((producto) => (
-                            <button
-                              type="button"
-                              key={producto.id_producto}
-                              className={`client-result-btn ${
-                                String(formInventario.id_producto) === String(producto.id_producto)
-                                  ? 'active'
-                                  : ''
-                              }`}
-                              onClick={() => {
-                                setFormInventario({
-                                  ...formInventario,
-                                  id_producto: producto.id_producto,
-                                });
-
-                                setBusquedaProductoInventario(
-                                  `${producto.nombre || ''}${producto.marca ? ` - ${producto.marca}` : ''}`
-                                );
-                              }}
-                            >
-                              <div className="client-result-name">
-                                {obtenerNombreBaseProducto(producto)}
-                              </div>
-
-                              <div className="client-result-meta">
-                                Código: {obtenerCodigoProducto(producto)}
-                                {' · '}ID BD: {producto.id_producto}
-                                {producto.marca ? ` · ${producto.marca}` : ''}
-                                {producto.precio ? ` · ${formatPrecio(producto.precio)}` : ''}
-                              </div>
-                            </button>
-                          ))
-                        )}
-                      </div>
+                      <label>Producto</label>
+                      <select
+                        className="premium-select"
+                        value={formInventario.id_producto}
+                        onChange={(e) => setFormInventario({ ...formInventario, id_producto: e.target.value })}
+                      >
+                        <option value="">Selecciona un producto</option>
+                        {productos.map((p) => (
+                          <option key={p.id_producto} value={p.id_producto}>
+                            {p.nombre} {p.marca ? `- ${p.marca}` : ''}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="field">
@@ -2344,6 +2024,8 @@ export default function Productos({ usuario, onRequireLogin }) {
                       <input
                         className="premium-input"
                         type="number"
+                        min="0"
+                        step="1"
                         placeholder="Ej. 12"
                         value={formInventario.stock}
                         onChange={(e) => setFormInventario({ ...formInventario, stock: e.target.value })}
@@ -2387,8 +2069,7 @@ export default function Productos({ usuario, onRequireLogin }) {
                   </div>
 
                   <div className="search-meta">
-                    Mostrando {inventarioPaginado.length} de {inventarioFiltrado.length} registros filtrados.
-                    Total inventario: {inventario.length}.
+                    Mostrando {inventarioFiltrado.length} de {inventario.length} registros.
                   </div>
                 </div>
               </section>
@@ -2413,7 +2094,7 @@ export default function Productos({ usuario, onRequireLogin }) {
                       </thead>
 
                       <tbody>
-                        {inventarioPaginado.map((item) => {
+                        {inventarioFiltrado.map((item) => {
                           const estado = estadoStock(item.stock);
                           const productoRelacionado = productos.find(
                             (p) => String(p.id_producto) === String(item.id_producto)
@@ -2465,30 +2146,6 @@ export default function Productos({ usuario, onRequireLogin }) {
                       </tbody>
                     </table>
                   </div>
-
-                  {inventarioFiltrado.length > registrosInventarioPorPagina && (
-                    <div className="pagination-row">
-                      <button
-                        className="btn-dark"
-                        onClick={() => setPaginaInventario((prev) => Math.max(1, prev - 1))}
-                        disabled={paginaInventario === 1}
-                      >
-                        Anterior
-                      </button>
-
-                      <span>
-                        Página {paginaInventario} de {totalPaginasInventario}
-                      </span>
-
-                      <button
-                        className="btn-dark"
-                        onClick={() => setPaginaInventario((prev) => Math.min(totalPaginasInventario, prev + 1))}
-                        disabled={paginaInventario === totalPaginasInventario}
-                      >
-                        Siguiente
-                      </button>
-                    </div>
-                  )}
                 </section>
               )}
             </section>
@@ -2532,6 +2189,8 @@ export default function Productos({ usuario, onRequireLogin }) {
                     <img
                       src={getImagenProducto(productoModal)}
                       alt={productoModal.nombre}
+                      loading="lazy"
+                      decoding="async"
                       onError={(e) => {
                         e.currentTarget.src = PLACEHOLDER;
                       }}
@@ -2594,55 +2253,21 @@ export default function Productos({ usuario, onRequireLogin }) {
 
                 {usuario?.rol !== 'cliente' && (
                   <div className="field">
-                    <label>Buscar cliente</label>
-
-                    <input
-                      className="premium-input"
-                      placeholder="Escribe nombre, correo, documento o ID..."
-                      value={busquedaClienteCarrito}
-                      onChange={(e) => {
-                        setBusquedaClienteCarrito(e.target.value);
-                        setClienteCarrito('');
-                      }}
-                    />
-
-                    {clienteSeleccionadoCarrito && (
-                      <div className="client-selected">
-                        Cliente seleccionado: <strong>{clienteSeleccionadoCarrito.nombre}</strong>
-                      </div>
-                    )}
-
-                    <div className="client-results">
-                      {clientesCarritoFiltrados.length === 0 ? (
-                        <div className="empty-box" style={{ marginTop: 0, padding: 18 }}>
-                          No se encontró ningún cliente.
-                        </div>
-                      ) : (
-                        clientesCarritoFiltrados.map((cliente) => (
-                          <button
-                            type="button"
-                            key={cliente.id_cliente}
-                            className={`client-result-btn ${
-                              String(clienteCarrito) === String(cliente.id_cliente) ? 'active' : ''
-                            }`}
-                            onClick={() => {
-                              setClienteCarrito(cliente.id_cliente);
-                              setBusquedaClienteCarrito(cliente.nombre || '');
-                            }}
-                          >
-                            <div className="client-result-name">
-                              {cliente.nombre}
-                            </div>
-
-                            <div className="client-result-meta">
-                              ID: {cliente.id_cliente}
-                              {cliente.email ? ` · ${cliente.email}` : ''}
-                              {cliente.telefono ? ` · ${cliente.telefono}` : ''}
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
+                    <label>Cliente</label>
+                    <select
+                      className="premium-select"
+                      value={clienteCarrito}
+                      onChange={(e) => setClienteCarrito(e.target.value)}
+                    >
+                      <option value="">Selecciona un cliente</option>
+                      {clientes
+                        .filter((cliente) => cliente.estado !== 'inactivo')
+                        .map((cliente) => (
+                          <option key={cliente.id_cliente} value={cliente.id_cliente}>
+                            {cliente.nombre}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                 )}
 
@@ -2664,8 +2289,6 @@ export default function Productos({ usuario, onRequireLogin }) {
                           <img
                             src={item.imagen_url || PLACEHOLDER}
                             alt={item.producto}
-                            loading="lazy"
-                            decoding="async"
                             onError={(e) => {
                               e.currentTarget.src = PLACEHOLDER;
                             }}
